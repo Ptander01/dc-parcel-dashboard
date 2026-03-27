@@ -26,6 +26,10 @@ const SB_RAZOR5_ID = "-9626406.2557 5111263.7852";          // 8 parcels, 929 ac
 const LUEDERS_CLEARFORK_ID = "-11081749.4424 3889251.5212000012"; // 5 parcels, 1661 ac — keep as primary
 const LUEDERS_GOOGLE_ID = "-11085213.72 3893864.5059999973";     // 2 parcels, 291 ac — merge into primary
 
+/* ─── Port Washington WI merge constants ─── */
+const PW_INS1_ID = "-9778919.5416 5379141.307800002";   // 34 parcels, 786 ac, VDC WISCO REALTY INVS 1 — keep as primary
+const PW_INS2_ID = "-9779050.0276 5379706.884099998";   // 11 parcels, 435 ac, VDC WISCO REALTY INVS 2 — merge into primary
+
 interface DataState {
   sitesData: SitesData | null;
   parcelsData: ParcelsGeoJSON | null;
@@ -246,6 +250,36 @@ function mergeLuedersSites(sitesData: SitesData): SitesData {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   Port Washington WI merge (2 → 1)
+   ═══════════════════════════════════════════════════════════ */
+
+function mergePortWashingtonSites(sitesData: SitesData): SitesData {
+  const ins1 = sitesData.sites.find((s) => s.id === PW_INS1_ID);
+  const ins2 = sitesData.sites.find((s) => s.id === PW_INS2_ID);
+
+  if (!ins1 || !ins2) return sitesData;
+
+  const mergedSite: Site = {
+    ...ins1,
+    currentName: "Port Washington, Wisconsin",
+    label: "Port Washington, WI (Stargate 4)",
+    metaClusterName: "OpenAI; Oracle; Vantage; Port Washington, WI (Stargate 4)",
+    metrics: mergeMetrics(ins1.metrics, ins2.metrics),
+    bbox: mergeBboxes(ins1.bbox, ins2.bbox),
+  };
+
+  const otherSites = sitesData.sites.filter(
+    (s) => s.id !== PW_INS1_ID && s.id !== PW_INS2_ID
+  );
+
+  return {
+    ...sitesData,
+    sites: [...otherSites, mergedSite],
+    globalMetrics: { ...sitesData.globalMetrics, totalSites: otherSites.length + 1 },
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
    Apply all merges
    ═══════════════════════════════════════════════════════════ */
 
@@ -255,6 +289,7 @@ function applyAllSiteMerges(sitesData: SitesData): SitesData {
   result = mergeRainier2Sites(result);
   result = mergeSouthBendSites(result);
   result = mergeLuedersSites(result);
+  result = mergePortWashingtonSites(result);
   return result;
 }
 
@@ -268,6 +303,8 @@ function applyAllParcelRemaps(parcelsData: ParcelsGeoJSON): ParcelsGeoJSON {
   result = remapParcels(result, SB_RAZOR5_ID, SB_AMAZON_ID);
   // Lueders: Google → Clearfork
   result = remapParcels(result, LUEDERS_GOOGLE_ID, LUEDERS_CLEARFORK_ID);
+  // Port Washington: INS 2 → INS 1
+  result = remapParcels(result, PW_INS2_ID, PW_INS1_ID);
   return result;
 }
 
@@ -281,6 +318,8 @@ function applyAllTimelineMerges(timelineData: TimelineData): TimelineData {
   mergeTimelineMilestones(result, SB_AMAZON_ID, SB_RAZOR5_ID);
   // Lueders: Google milestones → Clearfork
   mergeTimelineMilestones(result, LUEDERS_CLEARFORK_ID, LUEDERS_GOOGLE_ID);
+  // Port Washington: INS 2 milestones → INS 1
+  mergeTimelineMilestones(result, PW_INS1_ID, PW_INS2_ID);
   return result;
 }
 

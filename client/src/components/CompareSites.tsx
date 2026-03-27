@@ -2,29 +2,30 @@
  * Cartographic Studio Design — Compare Sites Summary View
  * Frosted glass panel with horizontal bar charts comparing selected sites
  * side-by-side on key metrics: Parcels, Acreage, Land Value, Cost/Acre.
- * Uses Recharts BarChart with the app's DM Sans / DM Mono font system.
- * Includes a brief introduction and a methods toggle per user preference.
+ *
+ * Owner-segmented bars: Each bar is broken into segments colored by the
+ * parcel owner (OWN1_LAST), using the same CATEGORICAL_COLORS palette as
+ * the map symbology so colors stay consistent across views.
  */
 
 import { useState, useMemo } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
-import { BarChart3, X, Info, ChevronDown, ChevronUp } from "lucide-react";
-import type { Site } from "@/lib/types";
-import { formatCurrency, formatAcres, formatNumber } from "@/lib/format";
+import { BarChart3, X, Info } from "lucide-react";
+import type { ParcelFeature, Site } from "@/lib/types";
+import { formatCurrency, formatAcres, formatNumber, safeNumber } from "@/lib/format";
 import { getParentCompany, COMPANY_CONFIG } from "@/lib/companies";
+
+/* ─── Same palette as symbology.ts categorical mode ─── */
+const CATEGORICAL_COLORS = [
+  "#E53935", "#1E88E5", "#43A047", "#FB8C00", "#8E24AA",
+  "#00ACC1", "#F4511E", "#3949AB", "#7CB342", "#D81B60",
+  "#039BE5", "#C0CA33", "#6D4C41", "#00897B", "#FFB300",
+  "#5E35B1", "#546E7A", "#E91E63", "#00BCD4", "#FF7043",
+];
 
 interface CompareSitesProps {
   sites: Site[];
   selectedSiteIds: Set<string>;
+  parcels: ParcelFeature[];
   onClose: () => void;
 }
 
@@ -41,38 +42,142 @@ const METRIC_TABS: { key: MetricKey; label: string; format: (v: number) => strin
   },
 ];
 
-export function CompareSites({ sites, selectedSiteIds, onClose }: CompareSitesProps) {
+/* ─── Per-owner breakdown for a site ─── */
+interface OwnerSegment {
+  owner: string;
+  color: string;
+  parcels: number;
+  acres: number;
+  value: number;
+}
+
+interface SiteRow {
+  siteId: string;
+  name: string;
+  fullName: string;
+  company: string;
+  companyColor: string;
+  parcels: number;
+  acres: number;
+  value: number;
+  costPerAcre: number;
+  segments: OwnerSegment[];
+}
+
+export function CompareSites({ sites, selectedSiteIds, parcels, onClose }: CompareSitesProps) {
   const [activeMetric, setActiveMetric] = useState<MetricKey>("acres");
   const [showMethods, setShowMethods] = useState(false);
+  const [hoveredSegment, setHoveredSegment] = useState<{
+    siteId: string;
+    owner: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
   const selectedSites = useMemo(() => {
     return sites.filter((s) => selectedSiteIds.has(s.id));
   }, [sites, selectedSiteIds]);
 
-  const chartData = useMemo(() => {
+  /* Build a global owner→color map from ALL parcels of selected sites so
+     the same owner always gets the same color across sites */
+  const ownerColorMap = useMemo(() => {
+    const ownerCounts = new Map<string, number>();
+    for (const p of parcels) {
+      if (!selectedSiteIds.has(p.properties._siteId)) continue;
+      const owner = p.properties.OWN1_LAST || "Unknown";
+      ownerCounts.set(owner, (ownerCounts.get(owner) || 0) + 1);
+    }
+    // Sort by count descending, assign colors
+    const sorted = Array.from(ownerCounts.entries()).sort((a, b) => b[1] - a[1]);
+    const map = new Map<string, string>();
+    sorted.forEach(([owner], idx) => {
+      map.set(owner, CATEGORICAL_COLORS[idx % CATEGORICAL_COLORS.length]);
+    });
+    return map;
+  }, [parcels, selectedSiteIds]);
+
+  /* Build row data with per-owner segments */
+  const rows: SiteRow[] = useMemo(() => {
     return selectedSites.map((site) => {
       const m = site.metrics;
       const shortName =
         site.currentName?.split(",")[0] || site.location || site.primaryOwner;
       const company = getParentCompany(site);
-      const color = COMPANY_CONFIG[company]?.color || "#6b7280";
+      const companyColor = COMPANY_CONFIG[company]?.color || "#6b7280";
+
+      // Aggregate parcels by owner for this site
+      const ownerAgg = new Map<string, { parcels: number; acres: number; value: number }>();
+      for (const p of parcels) {
+        if (p.properties._siteId !== site.id) continue;
+        const owner = p.properties.OWN1_LAST || "Unknown";
+        const existing = ownerAgg.get(owner) || { parcels: 0, acres: 0, value: 0 };
+        existing.parcels += 1;
+        existing.acres += p.properties.LAND_ACRES || 0;
+        existing.value += safeNumber(p.properties.TOT_VAL);
+        ownerAgg.set(owner, existing);
+      }
+
+      // Sort segments by the current metric descending
+      const segments: OwnerSegment[] = Array.from(ownerAgg.entries())
+        .map(([owner, agg]) => ({
+          owner,
+          color: ownerColorMap.get(owner) || "#6b7280",
+          ...agg,
+        }))
+        .sort((a, b) => b.acres - a.acres);
 
       return {
-        name: shortName.length > 18 ? shortName.slice(0, 16) + "…" : shortName,
+        siteId: site.id,
+        name: shortName.length > 20 ? shortName.slice(0, 18) + "…" : shortName,
         fullName: site.currentName || site.label,
         company,
-        color,
+        companyColor,
         parcels: m.parcelCount,
         acres: m.totalAcres,
         value: m.totalValue,
         costPerAcre: m.totalAcres > 0 ? m.totalValue / m.totalAcres : 0,
+        segments,
       };
     });
-  }, [selectedSites]);
+  }, [selectedSites, parcels, ownerColorMap]);
 
   const currentTab = METRIC_TABS.find((t) => t.key === activeMetric)!;
 
+  /* Compute max value for scaling bars */
+  const maxVal = useMemo(() => {
+    if (activeMetric === "costPerAcre") {
+      // Cost/Acre doesn't segment — use total
+      return Math.max(...rows.map((r) => r.costPerAcre), 1);
+    }
+    return Math.max(...rows.map((r) => r[activeMetric] as number), 1);
+  }, [rows, activeMetric]);
+
+  /* Unique owners across all selected sites for the legend */
+  const legendOwners = useMemo(() => {
+    const seen = new Map<string, { color: string; total: number }>();
+    for (const row of rows) {
+      for (const seg of row.segments) {
+        const existing = seen.get(seg.owner);
+        if (existing) {
+          existing.total += seg[activeMetric === "costPerAcre" ? "acres" : activeMetric];
+        } else {
+          seen.set(seg.owner, {
+            color: seg.color,
+            total: seg[activeMetric === "costPerAcre" ? "acres" : activeMetric],
+          });
+        }
+      }
+    }
+    return Array.from(seen.entries())
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 10);
+  }, [rows, activeMetric]);
+
   if (selectedSites.length < 2) return null;
+
+  const barHeight = 28;
+  const rowGap = 8;
+  const labelWidth = 130;
 
   return (
     <div className="glass-panel rounded-xl w-full max-w-[700px] flex flex-col overflow-hidden">
@@ -109,7 +214,8 @@ export function CompareSites({ sites, selectedSiteIds, onClose }: CompareSitesPr
         <p className="text-xs text-muted-foreground leading-relaxed">
           Side-by-side comparison of selected data center sites across key land
           acquisition metrics. Values are aggregated from all parcels associated
-          with each site. Color indicates parent company.
+          with each site. Bar segments are colored by parcel owner, matching the
+          map's owner symbology palette.
         </p>
       </div>
 
@@ -123,8 +229,9 @@ export function CompareSites({ sites, selectedSiteIds, onClose }: CompareSitesPr
             <strong>Acreage</strong> = sum of LAND_ACRES field.{" "}
             <strong>Land Value</strong> = sum of TOT_VAL (total assessed value).{" "}
             <strong>Cost/Acre</strong> = TOT_VAL / LAND_ACRES for each site.
-            Sites with $0 assessed value may reflect tax-exempt or
-            recently-acquired parcels.
+            Bar segments show per-owner breakdown using the same color palette
+            as the map's Owner symbology mode. Cost/Acre uses a single bar
+            (not segmented) since it's a derived ratio.
           </p>
         </div>
       )}
@@ -147,60 +254,160 @@ export function CompareSites({ sites, selectedSiteIds, onClose }: CompareSitesPr
         ))}
       </div>
 
-      {/* Chart */}
-      <div className="px-4 pb-4" style={{ height: Math.max(180, selectedSites.length * 40 + 40) }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              horizontal={false}
-              stroke="oklch(0.85 0.01 80)"
-            />
-            <XAxis
-              type="number"
-              tickFormatter={(v: number) => currentTab.format(v)}
-              tick={{ fontSize: 10, fontFamily: "'DM Mono', monospace", fill: "#78716c" }}
-              axisLine={{ stroke: "oklch(0.85 0.01 80)" }}
-              tickLine={false}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              width={120}
-              tick={{ fontSize: 11, fontFamily: "'DM Sans', sans-serif", fill: "#44403c" }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const d = payload[0].payload;
-                return (
-                  <div className="glass-panel rounded-lg px-3 py-2 text-xs shadow-lg">
-                    <div className="font-semibold text-foreground mb-1">
-                      {d.fullName}
-                    </div>
-                    <div className="text-muted-foreground">
-                      {d.company}
-                    </div>
-                    <div className="mt-1.5 font-mono text-foreground">
-                      {currentTab.label}: {currentTab.format(d[activeMetric])}
-                    </div>
+      {/* Custom stacked bar chart */}
+      <div
+        className="px-4 pb-3 overflow-y-auto relative"
+        style={{ maxHeight: 400 }}
+      >
+        <div className="flex flex-col" style={{ gap: rowGap }}>
+          {rows.map((row) => {
+            const totalVal = activeMetric === "costPerAcre" ? row.costPerAcre : (row[activeMetric] as number);
+            const barWidthPct = maxVal > 0 ? (totalVal / maxVal) * 100 : 0;
+            const isCostPerAcre = activeMetric === "costPerAcre";
+
+            return (
+              <div key={row.siteId} className="flex items-center gap-2">
+                {/* Site label */}
+                <div
+                  className="text-[11px] text-right shrink-0 truncate"
+                  style={{
+                    width: labelWidth,
+                    fontFamily: "'DM Sans', sans-serif",
+                    color: "#44403c",
+                  }}
+                  title={row.fullName}
+                >
+                  {row.name}
+                </div>
+
+                {/* Bar container */}
+                <div className="flex-1 relative" style={{ height: barHeight }}>
+                  {/* Background track */}
+                  <div
+                    className="absolute inset-0 rounded-r-md"
+                    style={{ background: "oklch(0.95 0.005 80)" }}
+                  />
+
+                  {/* Segmented bar */}
+                  <div
+                    className="absolute top-0 left-0 h-full flex rounded-r-md overflow-hidden transition-all duration-300"
+                    style={{ width: `${Math.max(barWidthPct, 0.5)}%` }}
+                  >
+                    {isCostPerAcre ? (
+                      /* Cost/Acre: single bar colored by company */
+                      <div
+                        className="h-full w-full"
+                        style={{ background: row.companyColor, opacity: 0.8 }}
+                      />
+                    ) : (
+                      /* Segmented by owner */
+                      row.segments.map((seg) => {
+                        const segVal = seg[activeMetric as "parcels" | "acres" | "value"];
+                        const segPct = totalVal > 0 ? (segVal / totalVal) * 100 : 0;
+                        if (segPct < 0.3) return null;
+                        return (
+                          <div
+                            key={seg.owner}
+                            className="h-full transition-opacity duration-150 cursor-pointer"
+                            style={{
+                              width: `${segPct}%`,
+                              background: seg.color,
+                              opacity:
+                                hoveredSegment &&
+                                hoveredSegment.siteId === row.siteId &&
+                                hoveredSegment.owner !== seg.owner
+                                  ? 0.4
+                                  : 0.8,
+                              minWidth: 2,
+                            }}
+                            onMouseEnter={(e) =>
+                              setHoveredSegment({
+                                siteId: row.siteId,
+                                owner: seg.owner,
+                                x: e.clientX,
+                                y: e.clientY,
+                              })
+                            }
+                            onMouseLeave={() => setHoveredSegment(null)}
+                          />
+                        );
+                      })
+                    )}
                   </div>
-                );
+
+                  {/* Value label */}
+                  <div
+                    className="absolute right-2 top-0 h-full flex items-center text-[10px] font-mono"
+                    style={{ color: barWidthPct > 60 ? "white" : "#78716c" }}
+                  >
+                    {currentTab.format(totalVal)}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Hover tooltip */}
+        {hoveredSegment && (() => {
+          const row = rows.find((r) => r.siteId === hoveredSegment.siteId);
+          const seg = row?.segments.find((s) => s.owner === hoveredSegment.owner);
+          if (!row || !seg) return null;
+          return (
+            <div
+              className="fixed z-[9999] glass-panel rounded-lg px-3 py-2 text-xs shadow-lg pointer-events-none"
+              style={{
+                left: hoveredSegment.x + 12,
+                top: hoveredSegment.y - 40,
               }}
-            />
-            <Bar dataKey={activeMetric} radius={[0, 4, 4, 0]} barSize={24}>
-              {chartData.map((entry, index) => (
-                <Cell key={index} fill={entry.color} fillOpacity={0.8} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <div
+                  className="w-2.5 h-2.5 rounded-sm shrink-0"
+                  style={{ background: seg.color }}
+                />
+                <span className="font-semibold text-foreground truncate max-w-[200px]">
+                  {seg.owner}
+                </span>
+              </div>
+              <div className="text-muted-foreground">{row.fullName}</div>
+              <div className="mt-1 font-mono text-foreground space-y-0.5">
+                <div>{seg.parcels} parcels</div>
+                <div>{formatAcres(seg.acres)}</div>
+                <div>{formatCurrency(seg.value)}</div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Owner legend */}
+      {activeMetric !== "costPerAcre" && legendOwners.length > 1 && (
+        <div className="px-4 pb-3 pt-1 border-t border-border/30">
+          <div className="text-[10px] text-muted-foreground mb-1.5 uppercase tracking-wider font-medium">
+            Owners
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {legendOwners.map(([owner, { color }]) => (
+              <div key={owner} className="flex items-center gap-1">
+                <div
+                  className="w-2.5 h-2.5 rounded-sm shrink-0"
+                  style={{ background: color }}
+                />
+                <span className="text-[10px] text-muted-foreground truncate max-w-[140px]">
+                  {owner}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* X-axis label */}
+      <div className="px-4 pb-2 text-center">
+        <span className="text-[10px] text-muted-foreground font-mono">
+          {currentTab.label}
+        </span>
       </div>
     </div>
   );

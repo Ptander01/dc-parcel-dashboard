@@ -311,6 +311,7 @@ export default function Dashboard() {
           <CompareSites
             sites={sitesData.sites}
             selectedSiteIds={selectedSiteIds}
+            parcels={parcelsData?.features || []}
             onClose={() => setShowCompare(false)}
           />
         </div>

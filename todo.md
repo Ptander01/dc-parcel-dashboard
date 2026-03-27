@@ -33,7 +33,16 @@
 - [x] Merge 2 Lueders TX entries into 1
 - [x] Update useData.ts with merge logic
 
+## P0 — Port Washington WI Merge + Owner-Colored Compare Bars
+- [x] Analyze PW site IDs and parcel owner data
+- [x] Merge 2 PW entries into 1 in useData.ts
+- [x] Add owner-colored segmented bars in Compare view
+- [x] Test and verify
+
+## P0 — Musk / Elon Parent Group
+- [x] Create 'Musk / Elon' parent group for xAI + SpaceX + Austin EdgeConneX
+- [x] Update companies.ts with new group definition
+- [x] Test and verify
+
 ## Deferred — User Requests (Post-Sprint 3)
-- [ ] Merge Port Washington WI duplicate sites into one entry in site selector
-- [ ] Compare chart: color-code bars by owner to match symbology (stacked/segmented bars)
 - [ ] Merge other duplicate sites (Rainier 2 Jackson, South Bend AWS, Lueders TX, Austin TX)
