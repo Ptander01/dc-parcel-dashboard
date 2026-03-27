@@ -269,8 +269,24 @@ function GanttTimeline({
 }) {
   const [hoveredIdx, setHoveredIdx] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Measure container width for dynamic chart sizing
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    ro.observe(el);
+    setContainerWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
 
   // Compute time bounds
   const { minTime, maxTime, yearMarkers } = useMemo(() => {
@@ -307,6 +323,16 @@ function GanttTimeline({
     return CATEGORY_CONFIG.filter((c) => ids.has(c.id));
   }, [allMilestones]);
 
+  // Group milestones by category for swim-lane rendering
+  const categoryLanes = useMemo(() => {
+    const lanes: { cat: (typeof CATEGORY_CONFIG)[0]; milestones: PlottedMilestone[] }[] = [];
+    for (const cat of activeCategories) {
+      const catMs = milestones.filter((m) => m.category.id === cat.id);
+      if (catMs.length > 0) lanes.push({ cat, milestones: catMs });
+    }
+    return lanes;
+  }, [activeCategories, milestones]);
+
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -321,8 +347,8 @@ function GanttTimeline({
     return () => el?.removeEventListener("scroll", checkScroll);
   }, [checkScroll, milestones]);
 
-  const scrollRight = () => scrollRef.current?.scrollBy({ left: 300, behavior: "smooth" });
-  const scrollLeft = () => scrollRef.current?.scrollBy({ left: -300, behavior: "smooth" });
+  const scrollRight = () => scrollRef.current?.scrollBy({ left: 400, behavior: "smooth" });
+  const scrollLeft = () => scrollRef.current?.scrollBy({ left: -400, behavior: "smooth" });
 
   // Multi-site groups
   const siteGroups = useMemo(() => {
@@ -340,32 +366,6 @@ function GanttTimeline({
     return Array.from(groups.values()).filter((g) => g.milestones.length > 0);
   }, [milestones, selectedSites, viewMode]);
 
-  // Phase lanes for Gantt (when phaseResult available and single-site mode)
-  const phaseLanes = useMemo(() => {
-    if (viewMode !== "single" || !phaseResult) return null;
-    return phaseResult.phases.map((phase) => {
-      const energization = phase.details.energization;
-      let startDate: number | null = null;
-      let endDate: number | null = null;
-
-      // Try to parse energization as a date range
-      if (energization) {
-        const parts = energization.split(/[–—-]/);
-        if (parts.length >= 2) {
-          const s = parseDate(parts[0].trim());
-          const e = parseDate(parts[1].trim());
-          if (s > 0) startDate = s;
-          if (e > 0) endDate = e;
-        } else {
-          const d = parseDate(energization.trim());
-          if (d > 0) { startDate = d; endDate = d; }
-        }
-      }
-
-      return { phase, startDate, endDate };
-    });
-  }, [viewMode, phaseResult]);
-
   if (milestones.length === 0) {
     return (
       <div className="px-4 py-8 text-center">
@@ -376,22 +376,26 @@ function GanttTimeline({
   }
 
   const isCompare = viewMode === "compare" && siteGroups.length > 0;
-  const LANE_HEIGHT = 88;
-  const LANE_GAP = 6;
-  const LABEL_WIDTH = 170;
-  const HEADER_HEIGHT = 32;
-  const TIMELINE_WIDTH_PX = isCompare
-    ? Math.max(milestones.length * 80, 1400)
-    : Math.max(milestones.length * 140, 1200);
+  const LABEL_WIDTH = 160;
+  const HEADER_HEIGHT = 28;
+
+  // Dynamic timeline width: use container width or a minimum based on milestone density
+  const availableWidth = Math.max(containerWidth - LABEL_WIDTH - 32, 400);
+  const minContentWidth = isCompare
+    ? Math.max(milestones.length * 70, 1000)
+    : Math.max(milestones.length * 100, 1200);
+  const TIMELINE_WIDTH_PX = Math.max(availableWidth, minContentWidth);
 
   /* ── Compare mode rendering ── */
   if (isCompare) {
+    const LANE_HEIGHT = 88;
+    const LANE_GAP = 6;
     const totalHeight = HEADER_HEIGHT + siteGroups.length * (LANE_HEIGHT + LANE_GAP) + 40;
 
     return (
-      <div className="relative pt-2 pb-4">
+      <div ref={containerRef} className="relative pt-2 pb-4">
         {canScrollLeft && (
-          <button onClick={scrollLeft} className="absolute left-[168px] top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/90 shadow-md flex items-center justify-center hover:bg-white transition-colors rotate-180">
+          <button onClick={scrollLeft} className="absolute left-[138px] top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/90 shadow-md flex items-center justify-center hover:bg-white transition-colors rotate-180">
             <ChevronRight className="w-4 h-4 text-foreground" />
           </button>
         )}
@@ -507,101 +511,201 @@ function GanttTimeline({
     );
   }
 
-  /* ── Single-site mode rendering ── */
-  const singleAxisTop = 8 + activeCategories.length * 28 + 20;
+  /* ═══════════════════════════════════════════════════════════════════════════
+   *  Single-site mode: SWIM-LANE LAYOUT
+   *  Each category gets its own horizontal lane. Milestones are placed
+   *  inside their category row. Labels use multi-row staggering within
+   *  the lane to avoid overlap. Category labels are sticky (frozen column).
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  const LANE_H = 110; // height of each category swim lane
+  const LANE_GAP = 4;
+  const totalHeight = HEADER_HEIGHT + categoryLanes.length * (LANE_H + LANE_GAP) + 24;
 
   return (
-    <div className="relative px-4 pt-3 pb-4">
+    <div ref={containerRef} className="relative pt-2 pb-2">
       {canScrollLeft && (
-        <button onClick={scrollLeft} className="absolute left-1 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/90 shadow-md flex items-center justify-center hover:bg-white transition-colors rotate-180">
-          <ChevronRight className="w-4 h-4 text-foreground" />
-        </button>
-      )}
-      {canScrollRight && (
-        <button onClick={scrollRight} className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/90 shadow-md flex items-center justify-center hover:bg-white transition-colors">
-          <ChevronRight className="w-4 h-4 text-foreground" />
-        </button>
-      )}
+          <button onClick={scrollLeft} className="absolute left-[158px] top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/90 shadow-md flex items-center justify-center hover:bg-white transition-colors rotate-180">
+            <ChevronRight className="w-4 h-4 text-foreground" />
+          </button>
+        )}
+        {canScrollRight && (
+          <button onClick={scrollRight} className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/90 shadow-md flex items-center justify-center hover:bg-white transition-colors">
+            <ChevronRight className="w-4 h-4 text-foreground" />
+          </button>
+        )}
 
-      <div ref={scrollRef} className="overflow-x-auto overflow-y-visible custom-scrollbar" style={{ paddingBottom: "8px" }}>
-        <div className="relative" style={{ width: `${TIMELINE_WIDTH_PX}px`, minHeight: "240px" }}>
-          {/* Grid lines */}
-          {yearMarkers.map((marker) => (
-            <div key={`grid-${marker.year}-${marker.label}`} className="absolute top-0 bottom-0" style={{ left: `${marker.pct}%` }}>
-              <div className="w-px h-full" style={{ backgroundColor: marker.isYear ? "rgba(0,0,0,0.15)" : "rgba(0,0,0,0.07)" }} />
-            </div>
-          ))}
-
-          {/* Category swim-lane bands */}
-          {activeCategories.map((cat, catIdx) => {
-            const catMs = milestones.filter((m) => m.category.id === cat.id);
-            if (catMs.length === 0) return null;
-            const catMin = catMs[0].timestamp;
-            const catMax = catMs[catMs.length - 1].timestamp;
-            const leftPct = Math.max(((catMin - minTime) / timeSpan) * 100 - 0.5, 0);
-            const rightPct = Math.min(((catMax - minTime) / timeSpan) * 100 + 0.5, 100);
-            const widthPct = rightPct - leftPct;
-            const topOffset = 8 + catIdx * 28;
-            return (
-              <div
-                key={`lane-${cat.id}`}
-                className="absolute rounded-full flex items-center px-3 select-none"
-                style={{ left: `${leftPct}%`, width: `${Math.max(widthPct, 3)}%`, top: `${topOffset}px`, height: "22px", backgroundColor: `${cat.color}20`, borderLeft: `3px solid ${cat.color}` }}
-              >
-                <span className="text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: cat.color }}>{cat.label}</span>
-              </div>
-            );
-          })}
-
-          {/* Main timeline axis */}
-          <div className="absolute left-0 right-0 h-[3px] rounded-full bg-border/30" style={{ top: `${singleAxisTop}px` }} />
-
-          {/* Milestone nodes */}
-          {milestones.map((m, idx) => {
-            const leftPct = timeSpan > 0 ? ((m.timestamp - minTime) / timeSpan) * 100 : 50;
-            const isHovered = hoveredIdx === String(idx);
-            const isAbove = idx % 2 === 0;
-            const labelTop = isAbove ? singleAxisTop - 56 : singleAxisTop + 20;
-
-            return (
-              <div key={`ms-${idx}`}>
-                <div className="absolute w-px transition-colors" style={{ left: `${leftPct}%`, top: isAbove ? `${labelTop + 38}px` : `${singleAxisTop + 6}px`, height: isAbove ? `${singleAxisTop - labelTop - 38 + 2}px` : `${labelTop - singleAxisTop - 6}px`, backgroundColor: isHovered ? m.category.color : `${m.category.color}40` }} />
-                <div
-                  className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm cursor-pointer transition-all z-10"
-                  style={{ left: `${leftPct}%`, top: `${singleAxisTop + 1.5}px`, width: isHovered ? "14px" : "10px", height: isHovered ? "14px" : "10px", backgroundColor: m.category.color, boxShadow: isHovered ? `0 0 0 3px ${m.category.color}30, 0 2px 8px rgba(0,0,0,0.2)` : "0 1px 3px rgba(0,0,0,0.2)", zIndex: isHovered ? 30 : 10 }}
-                  onMouseEnter={() => setHoveredIdx(String(idx))}
-                  onMouseLeave={() => setHoveredIdx("")}
-                />
-                <div
-                  className="absolute -translate-x-1/2 flex flex-col items-center cursor-pointer"
-                  style={{ left: `${leftPct}%`, top: `${labelTop}px`, opacity: isHovered ? 1 : 0.8, zIndex: isHovered ? 25 : 5, maxWidth: isHovered ? "180px" : "110px", transition: "opacity 0.15s, max-width 0.2s" }}
-                  onMouseEnter={() => setHoveredIdx(String(idx))}
-                  onMouseLeave={() => setHoveredIdx("")}
-                >
-                  <span className="text-[9px] font-mono text-foreground/60 whitespace-nowrap">{formatDateLabel(m.date)}</span>
-                  <span className={`text-[10px] font-semibold text-center leading-tight ${isHovered ? "line-clamp-3" : "line-clamp-1"}`} style={{ color: m.category.color }}>{m.milestone}</span>
+      <div className="flex">
+        {/* ── Sticky category labels (frozen left column) ── */}
+        <div className="shrink-0 z-10" style={{ width: `${LABEL_WIDTH}px` }}>
+          {/* Year header spacer */}
+          <div style={{ height: `${HEADER_HEIGHT}px` }} className="flex items-end px-3 pb-1">
+            <span className="text-[9px] uppercase tracking-widest text-foreground/50 font-semibold">Category</span>
+          </div>
+          {categoryLanes.map(({ cat, milestones: catMs }, idx) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveFilter(activeFilter === cat.id ? null : cat.id)}
+              className="flex items-center gap-2 px-3 border-r transition-colors hover:bg-black/[0.02] w-full"
+              style={{
+                height: `${LANE_H}px`,
+                marginBottom: idx < categoryLanes.length - 1 ? `${LANE_GAP}px` : 0,
+                borderRightColor: cat.color,
+                borderRightWidth: "3px",
+                backgroundColor: activeFilter === cat.id ? `${cat.color}10` : `${cat.color}04`,
+              }}
+              title={`${cat.label} — ${catMs.length} milestone${catMs.length !== 1 ? "s" : ""}. Click to filter.`}
+            >
+              <div className="min-w-0 flex-1 text-left">
+                <div className="text-[11px] font-bold uppercase tracking-wide leading-tight" style={{ color: cat.color }}>
+                  {cat.label}
                 </div>
-
-                {isHovered && (
-                  <div className="absolute z-50" style={{ left: `${leftPct}%`, top: `${singleAxisTop + 20}px`, transform: "translateX(-50%)" }}>
-                    <MilestoneTooltip m={m} onHover={() => setHoveredIdx(String(idx))} onLeave={() => setHoveredIdx("")} />
-                  </div>
-                )}
+                <div className="text-[9px] text-foreground/45 mt-0.5">
+                  {catMs.length} event{catMs.length !== 1 ? "s" : ""}
+                </div>
               </div>
-            );
-          })}
+            </button>
+          ))}
+        </div>
 
-          {/* Year labels at bottom */}
-          <div className="absolute left-0 right-0" style={{ top: `${singleAxisTop + 50}px`, height: "20px" }}>
+        {/* ── Scrollable timeline area ── */}
+        <div ref={scrollRef} className="overflow-x-auto overflow-y-visible custom-scrollbar flex-1" style={{ paddingBottom: "8px" }}>
+          <div className="relative" style={{ width: `${TIMELINE_WIDTH_PX}px`, height: `${totalHeight}px` }}>
+            {/* Grid lines */}
             {yearMarkers.map((marker) => (
-              <span
-                key={`yr-${marker.year}-${marker.label}`}
-                className={`absolute -translate-x-1/2 select-none ${marker.isYear ? "text-[11px] font-bold text-foreground/65" : "text-[9px] font-medium text-foreground/40"}`}
-                style={{ left: `${marker.pct}%` }}
-              >
-                {marker.label}
-              </span>
+              <div key={`grid-${marker.year}-${marker.label}`} className="absolute top-0 bottom-0" style={{ left: `${marker.pct}%` }}>
+                <div className="w-px h-full" style={{ backgroundColor: marker.isYear ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.05)" }} />
+              </div>
             ))}
+
+            {/* Year/quarter labels at top */}
+            <div className="absolute left-0 right-0" style={{ top: 0, height: `${HEADER_HEIGHT}px` }}>
+              {yearMarkers.map((marker) => (
+                <span
+                  key={`hdr-${marker.year}-${marker.label}`}
+                  className={`absolute -translate-x-1/2 select-none ${marker.isYear ? "text-[11px] font-bold text-foreground/60 bottom-1" : "text-[9px] font-medium text-foreground/35 bottom-2"}`}
+                  style={{ left: `${marker.pct}%` }}
+                >
+                  {marker.label}
+                </span>
+              ))}
+            </div>
+
+            {/* ── Category swim lanes with milestones ── */}
+            {categoryLanes.map(({ cat, milestones: catMs }, laneIdx) => {
+              const laneTop = HEADER_HEIGHT + laneIdx * (LANE_H + LANE_GAP);
+              const axisY = laneTop + LANE_H / 2;
+
+              return (
+                <div key={`lane-${cat.id}`}>
+                  {/* Lane background */}
+                  <div
+                    className="absolute left-0 right-0"
+                    style={{
+                      top: `${laneTop}px`,
+                      height: `${LANE_H}px`,
+                      backgroundColor: `${cat.color}05`,
+                      borderTop: `1px solid ${cat.color}12`,
+                      borderBottom: `1px solid ${cat.color}12`,
+                    }}
+                  />
+                  {/* Central axis line */}
+                  <div className="absolute left-0 right-0 h-[2px] rounded-full" style={{ top: `${axisY}px`, backgroundColor: `${cat.color}20` }} />
+
+                  {/* Milestones in this lane */}
+                  {catMs.map((m, mIdx) => {
+                    const leftPct = timeSpan > 0 ? ((m.timestamp - minTime) / timeSpan) * 100 : 50;
+                    const hoverKey = `${cat.id}-${mIdx}`;
+                    const isHovered = hoveredIdx === hoverKey;
+                    // Stagger labels: cycle through rows above and below to spread them out
+                    const staggerPattern = mIdx % 6;
+                    let labelOffsetY: number;
+                    switch (staggerPattern) {
+                      case 0: labelOffsetY = -38; break; // above, row 1
+                      case 1: labelOffsetY = 14; break;  // below, row 1
+                      case 2: labelOffsetY = -26; break; // above, row 2
+                      case 3: labelOffsetY = 26; break;  // below, row 2
+                      case 4: labelOffsetY = -14; break; // above, row 3
+                      default: labelOffsetY = 38; break;  // below, row 3
+                    }
+                    const isAbove = labelOffsetY < 0;
+
+                    return (
+                      <div key={`ms-${cat.id}-${mIdx}`}>
+                        {/* Stem line from node to label */}
+                        <div
+                          className="absolute w-px transition-colors"
+                          style={{
+                            left: `${leftPct}%`,
+                            top: isAbove ? `${axisY + labelOffsetY + 16}px` : `${axisY + 5}px`,
+                            height: isAbove ? `${-labelOffsetY - 16 + 2}px` : `${labelOffsetY - 5}px`,
+                            backgroundColor: isHovered ? cat.color : `${cat.color}30`,
+                          }}
+                        />
+                        {/* Milestone node */}
+                        <div
+                          className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm cursor-pointer transition-all"
+                          style={{
+                            left: `${leftPct}%`,
+                            top: `${axisY + 1}px`,
+                            width: isHovered ? "14px" : "9px",
+                            height: isHovered ? "14px" : "9px",
+                            backgroundColor: cat.color,
+                            boxShadow: isHovered
+                              ? `0 0 0 3px ${cat.color}30, 0 2px 8px rgba(0,0,0,0.2)`
+                              : "0 1px 3px rgba(0,0,0,0.15)",
+                            zIndex: isHovered ? 30 : 10,
+                          }}
+                          onMouseEnter={() => setHoveredIdx(hoverKey)}
+                          onMouseLeave={() => setHoveredIdx("")}
+                        />
+                        {/* Label */}
+                        <div
+                          className="absolute -translate-x-1/2 flex flex-col items-center cursor-pointer"
+                          style={{
+                            left: `${leftPct}%`,
+                            top: `${axisY + labelOffsetY}px`,
+                            opacity: isHovered ? 1 : 0.75,
+                            zIndex: isHovered ? 25 : 5,
+                            maxWidth: isHovered ? "200px" : "130px",
+                            transition: "opacity 0.15s, max-width 0.2s",
+                          }}
+                          onMouseEnter={() => setHoveredIdx(hoverKey)}
+                          onMouseLeave={() => setHoveredIdx("")}
+                        >
+                          <span className="text-[9px] font-mono text-foreground/55 whitespace-nowrap">{formatDateLabel(m.date)}</span>
+                          <span
+                            className={`text-[10px] font-semibold text-center leading-tight ${isHovered ? "line-clamp-3" : "line-clamp-1"}`}
+                            style={{ color: cat.color }}
+                          >
+                            {m.milestone}
+                          </span>
+                        </div>
+
+                        {/* Hover tooltip */}
+                        {isHovered && (
+                          <div className="absolute z-50" style={{ left: `${leftPct}%`, top: `${axisY + 20}px`, transform: "translateX(-50%)" }}>
+                            <MilestoneTooltip m={m} onHover={() => setHoveredIdx(hoverKey)} onLeave={() => setHoveredIdx("")} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            {/* Year labels at bottom */}
+            <div className="absolute left-0 right-0" style={{ top: `${totalHeight - 20}px`, height: "20px" }}>
+              {yearMarkers.map((marker) => (
+                <span
+                  key={`yr-${marker.year}-${marker.label}`}
+                  className={`absolute -translate-x-1/2 select-none ${marker.isYear ? "text-[11px] font-bold text-foreground/60" : "text-[9px] font-medium text-foreground/35"}`}
+                  style={{ left: `${marker.pct}%` }}
+                >
+                  {marker.label}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
