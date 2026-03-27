@@ -180,7 +180,7 @@ export function CompareSites({ sites, selectedSiteIds, parcels, onClose }: Compa
   const labelWidth = 130;
 
   return (
-    <div className="glass-panel rounded-xl w-full max-w-[700px] flex flex-col overflow-hidden">
+    <div className="w-full flex flex-col overflow-hidden h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
         <div className="flex items-center gap-2">
@@ -256,8 +256,7 @@ export function CompareSites({ sites, selectedSiteIds, parcels, onClose }: Compa
 
       {/* Custom stacked bar chart */}
       <div
-        className="px-4 pb-3 overflow-y-auto relative"
-        style={{ maxHeight: 400 }}
+        className="px-4 pb-3 overflow-y-auto relative flex-1"
       >
         <div className="flex flex-col" style={{ gap: rowGap }}>
           {rows.map((row) => {

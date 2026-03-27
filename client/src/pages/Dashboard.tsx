@@ -19,6 +19,7 @@ import { ParcelMap } from "@/components/ParcelMap";
 import { SymbologyPanel } from "@/components/SymbologyPanel";
 import { CompareSites } from "@/components/CompareSites";
 import { SiteIntelligencePanel } from "@/components/SiteIntelligencePanel";
+import { FloatingPanel } from "@/components/FloatingPanel";
 import type { ParcelFeature, Site } from "@/lib/types";
 import { safeNumber } from "@/lib/format";
 import { buildSymbology } from "@/lib/symbology";
@@ -305,16 +306,25 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Compare Sites panel — center, above data table */}
+      {/* Compare Sites panel — floating, draggable + resizable */}
       {showCompare && selectedSiteIds.size >= 2 && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[1100] max-w-[700px] w-[90vw]">
+        <FloatingPanel
+          initialX={Math.round(window.innerWidth / 2 - 350)}
+          initialY={60}
+          initialWidth={700}
+          initialHeight={480}
+          minWidth={420}
+          minHeight={320}
+          showMaximize={true}
+          zIndex={1100}
+        >
           <CompareSites
             sites={sitesData.sites}
             selectedSiteIds={selectedSiteIds}
             parcels={parcelsData?.features || []}
             onClose={() => setShowCompare(false)}
           />
-        </div>
+        </FloatingPanel>
       )}
 
       {/* Site Intelligence Panel — combined Timeline + Phases + Parcels */}
