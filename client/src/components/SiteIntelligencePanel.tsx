@@ -418,7 +418,7 @@ function GanttTimeline({
                 style={{
                   height: `${LANE_HEIGHT}px`,
                   marginBottom: idx < siteGroups.length - 1 ? `${LANE_GAP}px` : 0,
-                  backgroundColor: `${group.color}06`,
+                  backgroundColor: `${group.color}18`,
                 }}
               >
                 <div className="w-3 h-3 rounded-full shrink-0 border-2 border-white shadow-sm" style={{ backgroundColor: group.color }} />
@@ -464,8 +464,8 @@ function GanttTimeline({
 
                 return (
                   <div key={`lane-${group.site.id}`}>
-                    <div className="absolute left-0 right-0 rounded-sm" style={{ top: `${laneTop}px`, height: `${LANE_HEIGHT}px`, backgroundColor: `${group.color}06`, borderTop: `1px solid ${group.color}15`, borderBottom: `1px solid ${group.color}15` }} />
-                    <div className="absolute left-0 right-0 h-[2px] rounded-full" style={{ top: `${axisY}px`, backgroundColor: `${group.color}25` }} />
+                    <div className="absolute left-0 right-0 rounded-sm" style={{ top: `${laneTop}px`, height: `${LANE_HEIGHT}px`, backgroundColor: `${group.color}18`, borderTop: `1px solid ${group.color}30`, borderBottom: `1px solid ${group.color}30` }} />
+                    <div className="absolute left-0 right-0 h-[2px] rounded-full" style={{ top: `${axisY}px`, backgroundColor: `${group.color}40` }} />
 
                     {group.milestones.map((m, mIdx) => {
                       const leftPct = timeSpan > 0 ? ((m.timestamp - minTime) / timeSpan) * 100 : 50;
@@ -551,7 +551,7 @@ function GanttTimeline({
                 marginBottom: idx < categoryLanes.length - 1 ? `${LANE_GAP}px` : 0,
                 borderRightColor: cat.color,
                 borderRightWidth: "3px",
-                backgroundColor: activeFilter === cat.id ? `${cat.color}10` : `${cat.color}04`,
+                backgroundColor: activeFilter === cat.id ? `${cat.color}18` : `${cat.color}0a`,
               }}
               title={`${cat.label} — ${catMs.length} milestone${catMs.length !== 1 ? "s" : ""}. Click to filter.`}
             >
@@ -603,13 +603,13 @@ function GanttTimeline({
                     style={{
                       top: `${laneTop}px`,
                       height: `${LANE_H}px`,
-                      backgroundColor: `${cat.color}05`,
-                      borderTop: `1px solid ${cat.color}12`,
-                      borderBottom: `1px solid ${cat.color}12`,
+                      backgroundColor: `${cat.color}15`,
+                      borderTop: `1px solid ${cat.color}30`,
+                      borderBottom: `1px solid ${cat.color}30`,
                     }}
                   />
                   {/* Central axis line */}
-                  <div className="absolute left-0 right-0 h-[2px] rounded-full" style={{ top: `${axisY}px`, backgroundColor: `${cat.color}20` }} />
+                  <div className="absolute left-0 right-0 h-[2px] rounded-full" style={{ top: `${axisY}px`, backgroundColor: `${cat.color}40` }} />
 
                   {/* Milestones in this lane */}
                   {catMs.map((m, mIdx) => {
