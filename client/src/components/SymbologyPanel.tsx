@@ -41,7 +41,7 @@ export function SymbologyPanel({
   }
 
   return (
-    <div className="glass-panel rounded-xl w-[240px] flex flex-col overflow-hidden">
+    <div className="glass-panel rounded-xl w-[240px] flex flex-col">
       {/* Header */}
       <div className="px-3 pt-3 pb-2 border-b border-border/30">
         <div className="flex items-center justify-between mb-2">
