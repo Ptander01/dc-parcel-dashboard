@@ -10,7 +10,8 @@
  */
 
 import { useEffect, useRef, useMemo, useCallback } from "react";
-import type { ParcelFeature, Site } from "@/lib/types";
+import type { ParcelFeature, Site, PhasePolygonsGeoJSON } from "@/lib/types";
+import type { SitePhaseResult } from "@/hooks/usePhases";
 import { safeNumber, formatCurrencyFull, formatAcres } from "@/lib/format";
 import { getParentCompany, COMPANY_CONFIG } from "@/lib/companies";
 import L from "leaflet";
@@ -25,6 +26,9 @@ interface ParcelMapProps {
   onSiteDblClick?: (siteId: string) => void;
   symbologyStyleMap: Map<number, L.PathOptions>;
   hasPhasing?: (siteId: string) => boolean;
+  phasePolygons?: PhasePolygonsGeoJSON | null;
+  highlightedPhase?: string | null;
+  phaseResult?: SitePhaseResult | null;
   className?: string;
 }
 
@@ -91,6 +95,35 @@ function getSiteColor(site: Site): string {
   return COMPANY_CONFIG[company]?.color || COMPANY_CONFIG.Other.color;
 }
 
+/** Phase color palette — matches useSpatialPhases.ts */
+const PHASE_OVERLAY_COLORS: Record<string, string> = {
+  "1": "#10b981",
+  "2": "#3b82f6",
+  "3": "#f59e0b",
+  "4": "#8b5cf6",
+  "5": "#ec4899",
+  "TBD": "#6b7280",
+  "PP 1": "#06b6d4",
+  "PP 2": "#14b8a6",
+  "1_Hunt": "#10b981",
+  "2_Mica": "#3b82f6",
+  "Kenosha_WI": "#f97316",
+};
+
+function getPhaseOverlayColor(phase: string): string {
+  return PHASE_OVERLAY_COLORS[phase] || "#6b7280";
+}
+
+function getPhaseOverlayLabel(phase: string): string {
+  if (phase === "1_Hunt") return "Phase 1 — Hunt Midwest";
+  if (phase === "2_Mica") return "Phase 2 — Project Mica";
+  if (phase === "Kenosha_WI") return "Kenosha, WI";
+  if (phase === "TBD") return "TBD";
+  if (phase.startsWith("PP ")) return `PP ${phase.replace("PP ", "")}`;
+  if (/^\d+$/.test(phase)) return `Phase ${phase}`;
+  return phase;
+}
+
 export function ParcelMap({
   parcels,
   sites,
@@ -100,11 +133,15 @@ export function ParcelMap({
   onSiteDblClick,
   symbologyStyleMap,
   hasPhasing,
+  phasePolygons,
+  highlightedPhase,
+  phaseResult,
   className,
 }: ParcelMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
+  const phaseOverlayRef = useRef<L.LayerGroup | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const featureLookupRef = useRef<Map<number, L.Layer>>(new Map());
   const featureStyleRef = useRef<Map<number, L.PathOptions>>(new Map());
@@ -160,6 +197,10 @@ export function ParcelMap({
     map.createPane("parcelsPane");
     map.getPane("parcelsPane")!.style.zIndex = "450";
 
+    map.createPane("phaseOverlayPane");
+    map.getPane("phaseOverlayPane")!.style.zIndex = "440";
+    map.getPane("phaseOverlayPane")!.style.pointerEvents = "none";
+
     // Satellite tiles
     L.tileLayer(ESRI_SATELLITE, {
       maxZoom: 19,
@@ -175,6 +216,9 @@ export function ParcelMap({
 
     // Zoom control top-right
     L.control.zoom({ position: "topright" }).addTo(map);
+
+    // Phase overlay layer group
+    phaseOverlayRef.current = L.layerGroup().addTo(map);
 
     // Markers layer group
     markersLayerRef.current = L.layerGroup().addTo(map);
@@ -407,6 +451,110 @@ export function ParcelMap({
   useEffect(() => {
     drawParcels();
   }, [drawParcels]);
+
+  // ─── Phase Polygon Overlay ─────────────────────────────────────────────
+  // Renders phase boundary polygons on the map when a phase is highlighted
+  // from the Phases tab eye icon, or when phaseResult is active.
+  useEffect(() => {
+    const map = mapRef.current;
+    const overlayGroup = phaseOverlayRef.current;
+    if (!map || !overlayGroup) return;
+
+    // Clear existing overlays
+    overlayGroup.clearLayers();
+
+    // Only show overlays when we have phase polygons and a highlighted phase or phaseResult
+    if (!phasePolygons || !phaseResult) return;
+
+    // Determine which phase polygons to show
+    // The phaseResult.configKey is like "spatial-Stargate 1 Abiliene"
+    const polyName = phaseResult.configKey.replace("spatial-", "");
+
+    // Filter phase polygon features for this site
+    const sitePolygons = phasePolygons.features.filter(
+      (f) => f.properties.Site === polyName
+    );
+
+    if (sitePolygons.length === 0) return;
+
+    // Determine display mode:
+    // - "__show_all__" sentinel → show all phase boundaries prominently
+    // - Specific phase ID → show that one prominently, others faintly
+    // - null → no overlays (phaseResult alone doesn't trigger overlays)
+    if (!highlightedPhase) return;
+
+    const showAll = highlightedPhase === "__show_all__";
+
+    // Extract the raw phase name from the spatial ID (e.g., "spatial-Stargate 1 Abiliene-1" → "1")
+    // Handle edge case where polyName itself contains hyphens
+    const highlightedRawPhase = (!showAll && highlightedPhase)
+      ? highlightedPhase.replace(`spatial-${polyName}-`, "")
+      : null;
+
+    for (const polyFeature of sitePolygons) {
+      const phase = polyFeature.properties.Phase;
+      const color = getPhaseOverlayColor(phase);
+      const isHighlighted = highlightedRawPhase === phase;
+
+      // In "show all" mode, show all phase boundaries prominently
+      // In single-highlight mode, show the highlighted phase prominently and others faintly
+      const fillOpacity = showAll ? 0.22 : isHighlighted ? 0.32 : 0.08;
+      const strokeOpacity = showAll ? 0.9 : isHighlighted ? 1 : 0.35;
+      const weight = showAll ? 3 : isHighlighted ? 4 : 2;
+
+      // Convert GeoJSON coordinates (which may be in Web Mercator) to Leaflet LatLng
+      // Phase polygons from ArcGIS are in WGS84 (lon/lat)
+      const geoJsonLayer = L.geoJSON(polyFeature as any, {
+        pane: "phaseOverlayPane",
+        style: {
+          color: color,
+          weight: weight,
+          opacity: strokeOpacity,
+          fillColor: color,
+          fillOpacity: fillOpacity,
+          dashArray: showAll ? "" : isHighlighted ? "" : "6 4",
+        },
+      });
+
+      geoJsonLayer.addTo(overlayGroup);
+
+      // Add a label marker at the centroid of the polygon
+      try {
+        const bounds = geoJsonLayer.getBounds();
+        if (bounds.isValid()) {
+          const center = bounds.getCenter();
+          const label = getPhaseOverlayLabel(phase);
+          const fontSize = showAll ? 12 : isHighlighted ? 13 : 10;
+          const opacity = showAll ? 0.95 : isHighlighted ? 1 : 0.35;
+
+          const labelIcon = L.divIcon({
+            className: "phase-overlay-label",
+            html: `<div style="
+              font-family: 'DM Sans', sans-serif;
+              font-size: ${fontSize}px;
+              font-weight: 700;
+              color: ${color};
+              text-shadow: 0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
+              white-space: nowrap;
+              opacity: ${opacity};
+              pointer-events: none;
+              letter-spacing: 0.5px;
+            ">${label}</div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0],
+          });
+
+          L.marker(center, {
+            icon: labelIcon,
+            interactive: false,
+            pane: "phaseOverlayPane",
+          }).addTo(overlayGroup);
+        }
+      } catch {
+        // Silently skip label if bounds calculation fails
+      }
+    }
+  }, [phasePolygons, highlightedPhase, phaseResult]);
 
   // Handle hover highlight from table
   useEffect(() => {

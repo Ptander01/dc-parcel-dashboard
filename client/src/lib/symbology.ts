@@ -12,6 +12,7 @@ import L from "leaflet";
 export type SymbologyMode =
   | "type"
   | "owner"
+  | "phase"
   | "acreage"
   | "totalValue"
   | "taxYear"
@@ -27,6 +28,7 @@ export interface SymbologyOption {
 export const SYMBOLOGY_OPTIONS: SymbologyOption[] = [
   { id: "type", label: "Query Result Type", description: "Intersect / Proximity / Statewide", kind: "categorical" },
   { id: "owner", label: "Owner", description: "Unique color per owner", kind: "categorical" },
+  { id: "phase", label: "Phase", description: "Color by development phase", kind: "categorical" },
   { id: "acreage", label: "Parcel Acreage", description: "Graduated by land area", kind: "graduated" },
   { id: "totalValue", label: "Total Value", description: "Graduated by assessed value", kind: "graduated" },
   { id: "taxYear", label: "Tax Year", description: "Unique color per tax year", kind: "categorical" },
@@ -80,6 +82,43 @@ export interface SymbologyResult {
   legendTitle: string;
 }
 
+/** Phase assignment lookup — injected from Dashboard before buildSymbology is called */
+let _phaseAssignmentLookup: Record<string, { site: string; phase: string }> | null = null;
+
+/** Set the phase assignment lookup for phase symbology mode */
+export function setPhaseAssignmentLookup(lookup: Record<string, { site: string; phase: string }> | null) {
+  _phaseAssignmentLookup = lookup;
+}
+
+/** Phase color palette — matches useSpatialPhases.ts */
+const PHASE_SYMBOLOGY_COLORS: Record<string, string> = {
+  "1": "#10b981",       // emerald
+  "2": "#3b82f6",       // blue
+  "3": "#f59e0b",       // amber
+  "4": "#8b5cf6",       // violet
+  "5": "#ec4899",       // pink
+  "TBD": "#6b7280",     // gray
+  "PP 1": "#06b6d4",    // cyan
+  "PP 2": "#14b8a6",    // teal
+  "1_Hunt": "#10b981",  // emerald
+  "2_Mica": "#3b82f6",  // blue
+  "Kenosha_WI": "#f97316", // orange
+};
+
+function getPhaseSymbologyColor(phase: string): string {
+  return PHASE_SYMBOLOGY_COLORS[phase] || "#6b7280";
+}
+
+function getPhaseSymbologyLabel(phase: string): string {
+  if (phase === "1_Hunt") return "Phase 1 — Hunt Midwest";
+  if (phase === "2_Mica") return "Phase 2 — Project Mica";
+  if (phase === "Kenosha_WI") return "Kenosha, WI Expansion";
+  if (phase === "TBD") return "TBD / Unassigned";
+  if (phase.startsWith("PP ")) return `Power Plant ${phase.replace("PP ", "")}`;
+  if (/^\d+$/.test(phase)) return `Phase ${phase}`;
+  return phase;
+}
+
 export function buildSymbology(
   parcels: ParcelFeature[],
   mode: SymbologyMode
@@ -87,6 +126,8 @@ export function buildSymbology(
   switch (mode) {
     case "type":
       return buildTypeSymbology(parcels);
+    case "phase":
+      return buildPhaseSymbology(parcels);
     case "owner":
       return buildCategoricalSymbology(parcels, (p) => p.properties.OWN1_LAST || "Unknown", "Owner");
     case "taxYear":
@@ -199,6 +240,73 @@ function buildCategoricalSymbology(
   }
 
   return { styleMap, legend, legendTitle: title };
+}
+
+// ─── Phase Symbology (spatial phase assignments) ─────────────────────────
+
+function buildPhaseSymbology(parcels: ParcelFeature[]): SymbologyResult {
+  const styleMap = new Map<number, L.PathOptions>();
+  const phaseCounts = new Map<string, number>();
+  const unassignedColor = "#9ca3af";
+  let unassignedCount = 0;
+
+  for (const p of parcels) {
+    const objId = String(p.properties.OBJECTID);
+    const assignment = _phaseAssignmentLookup?.[objId];
+
+    if (assignment) {
+      const phase = assignment.phase;
+      phaseCounts.set(phase, (phaseCounts.get(phase) || 0) + 1);
+      const color = getPhaseSymbologyColor(phase);
+      styleMap.set(p.properties.OBJECTID, {
+        color: color,
+        weight: 2.5,
+        opacity: 0.95,
+        fillColor: color,
+        fillOpacity: 0.4,
+      });
+    } else {
+      unassignedCount++;
+      styleMap.set(p.properties.OBJECTID, {
+        color: unassignedColor,
+        weight: 1.5,
+        opacity: 0.6,
+        fillColor: unassignedColor,
+        fillOpacity: 0.15,
+      });
+    }
+  }
+
+  // Sort phases: numeric first, then alpha
+  const sortedPhases = Array.from(phaseCounts.entries()).sort((a, b) => {
+    const aNum = parseInt(a[0]);
+    const bNum = parseInt(b[0]);
+    if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+    if (!isNaN(aNum)) return -1;
+    if (!isNaN(bNum)) return 1;
+    return a[0].localeCompare(b[0]);
+  });
+
+  const legend: LegendEntry[] = sortedPhases.map(([phase, count]) => {
+    const color = getPhaseSymbologyColor(phase);
+    return {
+      color,
+      strokeColor: color,
+      label: getPhaseSymbologyLabel(phase),
+      count,
+    };
+  });
+
+  if (unassignedCount > 0) {
+    legend.push({
+      color: unassignedColor,
+      strokeColor: unassignedColor,
+      label: "No Phase Assignment",
+      count: unassignedCount,
+    });
+  }
+
+  return { styleMap, legend, legendTitle: "Development Phase" };
 }
 
 // ─── Graduated Symbology (quantile breaks) ────────────────────────────────

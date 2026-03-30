@@ -46,3 +46,21 @@
 
 ## Deferred — User Requests (Post-Sprint 3)
 - [ ] Merge other duplicate sites (Rainier 2 Jackson, South Bend AWS, Lueders TX, Austin TX)
+
+## P0 — Phase Polygon Map Overlays (Feature 1)
+- [ ] Add `phasePolygons` and `highlightedPhase` props to ParcelMap
+- [ ] Create a dedicated Leaflet pane for phase overlays (above parcels)
+- [ ] Render phase polygon boundaries as colored semi-transparent fills when highlightedPhase is set
+- [ ] When highlightedPhase matches a specific phase ID, show only that phase polygon
+- [ ] Add a "Show All Phases" button to PhaseDetailsTab header
+- [ ] When "Show All" is active, render all phase polygons for the site with distinct colors
+- [ ] Phase polygon labels on the map (phase name inside polygon)
+
+## P0 — Phase-Based Symbology Mode (Feature 2)
+- [ ] Add "phase" to SymbologyMode union type in symbology.ts
+- [ ] Add Phase option to SYMBOLOGY_OPTIONS array
+- [ ] Create buildPhaseSymbology function that colors parcels by phase assignment
+- [ ] Export PHASE_COLORS and getParcelPhase from useSpatialPhases for reuse
+- [ ] Wire phase assignments into Dashboard.tsx → buildSymbology call
+- [ ] Unassigned parcels show as gray in phase symbology mode
+- [ ] Legend shows phase names with colors and parcel counts

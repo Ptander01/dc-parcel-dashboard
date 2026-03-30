@@ -831,11 +831,32 @@ function PhaseDetailsTab({
         )}
       </div>
 
-      {/* Footer hint */}
+      {/* Footer — Show All toggle + hint */}
       <div className="px-4 py-2 border-t border-border/40 shrink-0">
-        <div className="flex items-center gap-1.5 text-[10px] text-foreground/40">
-          <MapPin className="w-3 h-3" />
-          Click the eye icon to highlight a phase's parcels on the map
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-[10px] text-foreground/40">
+            <MapPin className="w-3 h-3" />
+            Click eye icon to show phase boundaries on map
+          </div>
+          <button
+            onClick={() => {
+              // Toggle "show all" mode
+              if (highlightedPhase === "__show_all__") {
+                onHighlightPhase(null);
+              } else {
+                onHighlightPhase("__show_all__");
+              }
+            }}
+            className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all ${
+              highlightedPhase === "__show_all__"
+                ? "bg-terracotta/10 text-terracotta"
+                : "text-foreground/50 hover:text-foreground/70 hover:bg-black/5"
+            }`}
+            title="Show all phase boundaries on map"
+          >
+            <Layers className="w-3 h-3" />
+            {highlightedPhase === "__show_all__" ? "Hide All" : "Show All"}
+          </button>
         </div>
       </div>
     </div>

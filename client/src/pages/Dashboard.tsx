@@ -8,7 +8,7 @@
  * Center: Site Intelligence Panel (tabbed: Timeline, Phases, Parcels).
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Loader2, AlertTriangle, Layers, BarChart3, Activity } from "lucide-react";
 import { useData } from "@/hooks/useData";
 import { usePhases } from "@/hooks/usePhases";
@@ -23,13 +23,18 @@ import { SiteIntelligencePanel } from "@/components/SiteIntelligencePanel";
 import { FloatingPanel } from "@/components/FloatingPanel";
 import type { ParcelFeature, Site } from "@/lib/types";
 import { safeNumber } from "@/lib/format";
-import { buildSymbology } from "@/lib/symbology";
+import { buildSymbology, setPhaseAssignmentLookup } from "@/lib/symbology";
 import type { SymbologyMode } from "@/lib/symbology";
 
 export default function Dashboard() {
   const { sitesData, parcelsData, timelineData, phaseAssignments, phasePolygons, loading, error } = useData();
   const { hasPhasing: hasApnPhasing, buildPhaseResult: buildApnPhaseResult } = usePhases();
   const { hasSpatialPhasing, buildSpatialPhaseResult } = useSpatialPhases(phaseAssignments, phasePolygons);
+
+  // Keep the phase assignment lookup in sync for phase symbology mode
+  useEffect(() => {
+    setPhaseAssignmentLookup(phaseAssignments?.assignments || null);
+  }, [phaseAssignments]);
 
   // Unified hasPhasing: true if either spatial or APN-based data exists
   const hasPhasing = useCallback(
@@ -240,6 +245,9 @@ export default function Dashboard() {
         onSiteDblClick={handleSiteDblClick}
         symbologyStyleMap={effectiveStyleMap}
         hasPhasing={hasPhasing}
+        phasePolygons={phasePolygons}
+        highlightedPhase={highlightedPhase}
+        phaseResult={phaseResult}
         className="!h-full !w-full absolute inset-0"
       />
 
