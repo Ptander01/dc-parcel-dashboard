@@ -12,6 +12,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Loader2, AlertTriangle, Layers, BarChart3, Activity } from "lucide-react";
 import { useData } from "@/hooks/useData";
 import { usePhases } from "@/hooks/usePhases";
+import { useSpatialPhases } from "@/hooks/useSpatialPhases";
 import { SiteSelector } from "@/components/SiteSelector";
 import { KpiCards } from "@/components/KpiCards";
 import { ParcelTable } from "@/components/ParcelTable";
@@ -26,8 +27,15 @@ import { buildSymbology } from "@/lib/symbology";
 import type { SymbologyMode } from "@/lib/symbology";
 
 export default function Dashboard() {
-  const { sitesData, parcelsData, timelineData, loading, error } = useData();
-  const { hasPhasing, buildPhaseResult } = usePhases();
+  const { sitesData, parcelsData, timelineData, phaseAssignments, phasePolygons, loading, error } = useData();
+  const { hasPhasing: hasApnPhasing, buildPhaseResult: buildApnPhaseResult } = usePhases();
+  const { hasSpatialPhasing, buildSpatialPhaseResult } = useSpatialPhases(phaseAssignments, phasePolygons);
+
+  // Unified hasPhasing: true if either spatial or APN-based data exists
+  const hasPhasing = useCallback(
+    (siteId: string) => hasSpatialPhasing(siteId) || hasApnPhasing(siteId),
+    [hasSpatialPhasing, hasApnPhasing]
+  );
   const [selectedSiteIds, setSelectedSiteIds] = useState<Set<string>>(new Set());
   const [hoveredParcelId, setHoveredParcelId] = useState<number | null>(null);
   const [_selectedParcel, setSelectedParcel] = useState<ParcelFeature | null>(null);
@@ -117,15 +125,22 @@ export default function Dashboard() {
   }, [visibleParcels, symbologyMode]);
 
   // Build phase result for the Site Intelligence Panel
-  // Uses the first selected site that has phasing data
+  // Prefer spatial phase data; fall back to APN-based phasing
   const phaseResult = useMemo(() => {
     if (!parcelsData) return null;
-    // Find the first selected site with phasing
-    const siteWithPhasing = Array.from(selectedSiteIds).find((id) => hasPhasing(id));
-    if (!siteWithPhasing) return null;
-    const siteSet = new Set([siteWithPhasing]);
-    return buildPhaseResult(siteSet, parcelsData.features);
-  }, [selectedSiteIds, parcelsData, buildPhaseResult, hasPhasing]);
+
+    // Try spatial phasing first (covers Stargate, xAI, AWS Indiana, Mt Pleasant, KC)
+    const siteWithSpatial = Array.from(selectedSiteIds).find((id) => hasSpatialPhasing(id));
+    if (siteWithSpatial) {
+      return buildSpatialPhaseResult(selectedSiteIds, parcelsData.features);
+    }
+
+    // Fall back to APN-based phasing
+    const siteWithApn = Array.from(selectedSiteIds).find((id) => hasApnPhasing(id));
+    if (!siteWithApn) return null;
+    const siteSet = new Set([siteWithApn]);
+    return buildApnPhaseResult(siteSet, parcelsData.features);
+  }, [selectedSiteIds, parcelsData, hasSpatialPhasing, buildSpatialPhaseResult, hasApnPhasing, buildApnPhaseResult]);
 
   // Build phase highlight style map (overrides symbology when a phase is highlighted)
   const phaseStyleMap = useMemo(() => {
@@ -335,6 +350,8 @@ export default function Dashboard() {
           timelineData={timelineData}
           parcels={parcelsData.features}
           phaseResult={phaseResult}
+          phaseAssignments={phaseAssignments}
+          phasePolygons={phasePolygons}
           hasPhasing={hasPhasing}
           highlightedPhase={highlightedPhase}
           onHighlightPhase={setHighlightedPhase}

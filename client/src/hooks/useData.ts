@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { SitesData, ParcelsGeoJSON, TimelineData, Site } from "@/lib/types";
+import type { SitesData, ParcelsGeoJSON, TimelineData, Site, PhaseAssignmentsData, PhasePolygonsGeoJSON } from "@/lib/types";
 
 const SITES_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663348511113/HQS4SQ7gKiCdBgjmaVCmNU/sites_89eb3daf.json";
@@ -7,6 +7,10 @@ const PARCELS_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663348511113/HQS4SQ7gKiCdBgjmaVCmNU/parcels_654f57cb.geojson";
 const TIMELINE_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663348511113/FuT3jd9kTgsQVw8s7BkLWz/timeline_9a1af74b.json";
+const PHASE_ASSIGNMENTS_URL =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663348511113/NfqtFTNtPPaJWc3XaKGJAM/phase_assignments_64df2d44.json";
+const PHASE_POLYGONS_URL =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663348511113/NfqtFTNtPPaJWc3XaKGJAM/Site_Phases_2f2cb385.geojson";
 
 /* ─── Kansas City site merge constants ─── */
 const KC_AG_ROSE_ID = "-10528275.9494 4767685.2412";       // Northern — Project Mica (Phase 2)
@@ -34,6 +38,8 @@ interface DataState {
   sitesData: SitesData | null;
   parcelsData: ParcelsGeoJSON | null;
   timelineData: TimelineData | null;
+  phaseAssignments: PhaseAssignmentsData | null;
+  phasePolygons: PhasePolygonsGeoJSON | null;
   loading: boolean;
   error: string | null;
 }
@@ -332,6 +338,8 @@ export function useData(): DataState {
     sitesData: null,
     parcelsData: null,
     timelineData: null,
+    phaseAssignments: null,
+    phasePolygons: null,
     loading: true,
     error: null,
   });
@@ -341,10 +349,12 @@ export function useData(): DataState {
 
     async function load() {
       try {
-        const [sitesRes, parcelsRes, timelineRes] = await Promise.all([
+        const [sitesRes, parcelsRes, timelineRes, phaseAssignRes, phasePolyRes] = await Promise.all([
           fetch(SITES_URL),
           fetch(PARCELS_URL),
           fetch(TIMELINE_URL),
+          fetch(PHASE_ASSIGNMENTS_URL),
+          fetch(PHASE_POLYGONS_URL),
         ]);
 
         if (!sitesRes.ok || !parcelsRes.ok) {
@@ -356,6 +366,12 @@ export function useData(): DataState {
         let timelineData: TimelineData = timelineRes.ok
           ? await timelineRes.json()
           : {};
+        const phaseAssignments: PhaseAssignmentsData | null = phaseAssignRes.ok
+          ? await phaseAssignRes.json()
+          : null;
+        const phasePolygons: PhasePolygonsGeoJSON | null = phasePolyRes.ok
+          ? await phasePolyRes.json()
+          : null;
 
         // Post-process: apply all site merges
         sitesData = applyAllSiteMerges(sitesData);
@@ -363,7 +379,7 @@ export function useData(): DataState {
         timelineData = applyAllTimelineMerges(timelineData);
 
         if (!cancelled) {
-          setState({ sitesData, parcelsData, timelineData, loading: false, error: null });
+          setState({ sitesData, parcelsData, timelineData, phaseAssignments, phasePolygons, loading: false, error: null });
         }
       } catch (err) {
         if (!cancelled) {

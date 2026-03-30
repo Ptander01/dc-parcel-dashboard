@@ -111,6 +111,45 @@ export interface TimelineMilestone {
 /** Map from site ID to array of milestones (sorted chronologically) */
 export type TimelineData = Record<string, TimelineMilestone[]>;
 
+/* ─── Phase polygon spatial join types ─── */
+export interface PhaseAssignment {
+  site: string;
+  phase: string;
+}
+
+export interface PhaseAggregation {
+  parcelCount: number;
+  totalAcres: number;
+  totalValue: number;
+}
+
+export interface PhaseAssignmentsData {
+  assignments: Record<string, PhaseAssignment>;  // parcel OBJECTID → phase info
+  aggregations: Record<string, Record<string, PhaseAggregation>>;  // site → phase → agg
+  phasePolygons: Record<string, { site: string; phase: string; objectid: number }>;
+}
+
+export interface PhasePolygonFeature {
+  type: "Feature";
+  geometry: {
+    type: "Polygon";
+    coordinates: number[][][];
+  };
+  properties: {
+    OBJECTID: number;
+    Site: string;
+    Phase: string;
+    Shape_Length: number;
+    Shape_Area: number;
+    Field: number;
+  };
+}
+
+export interface PhasePolygonsGeoJSON {
+  type: "FeatureCollection";
+  features: PhasePolygonFeature[];
+}
+
 /* ─── Parent company grouping ─── */
 export interface CompanyGroup {
   company: string;

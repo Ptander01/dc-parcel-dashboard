@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FloatingPanel } from "./FloatingPanel";
-import type { TimelineData, TimelineMilestone, ParcelFeature, Site } from "@/lib/types";
+import type { TimelineData, TimelineMilestone, ParcelFeature, Site, PhaseAssignmentsData, PhasePolygonsGeoJSON } from "@/lib/types";
 import type { SitePhaseResult, PhaseWithMetrics, SiteTotals } from "@/hooks/usePhases";
 import { safeNumber, formatAcres, formatCurrency } from "@/lib/format";
 import { getParentCompany, COMPANY_CONFIG } from "@/lib/companies";
@@ -58,6 +58,8 @@ interface SiteIntelligencePanelProps {
   timelineData: TimelineData | null;
   parcels: ParcelFeature[];
   phaseResult: SitePhaseResult | null;
+  phaseAssignments: PhaseAssignmentsData | null;
+  phasePolygons: PhasePolygonsGeoJSON | null;
   hasPhasing: (siteId: string) => boolean;
   highlightedPhase: string | null;
   onHighlightPhase: (phaseId: string | null) => void;
@@ -1281,6 +1283,8 @@ export function SiteIntelligencePanel({
   timelineData,
   parcels,
   phaseResult,
+  phaseAssignments,
+  phasePolygons,
   hasPhasing,
   highlightedPhase,
   onHighlightPhase,
