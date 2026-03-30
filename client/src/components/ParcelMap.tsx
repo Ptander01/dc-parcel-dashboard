@@ -403,8 +403,8 @@ export function ParcelMap({
           const color = getSiteColor(site);
           const siteHasPhasing = hasPhasingRef.current ? hasPhasingRef.current(site.id) : false;
           const icon = isSelected
-            ? makeMarkerIcon(color, 18, 2.5, siteHasPhasing)
-            : makeMarkerIcon(color, 14, 2, false);
+            ? makeMarkerIcon(color, 22, 2.5, siteHasPhasing)
+            : makeMarkerIcon(color, 18, 2, false);
           const marker = L.marker([site.dcPoint[1], site.dcPoint[0]], {
             icon,
             title: `${site.currentName || site.label}${siteHasPhasing ? " (double-click for phases)" : ""}`,
@@ -427,7 +427,7 @@ export function ParcelMap({
         if (site.dcPoint) {
           const color = getSiteColor(site);
           const siteHasPhasing = hasPhasingRef.current ? hasPhasingRef.current(site.id) : false;
-          const icon = makeMarkerIcon(color, 14, 2, siteHasPhasing);
+          const icon = makeMarkerIcon(color, 18, 2, siteHasPhasing);
           const marker = L.marker([site.dcPoint[1], site.dcPoint[0]], {
             icon,
             title: `${site.currentName || site.label}${siteHasPhasing ? " (double-click for phases)" : ""}`,
