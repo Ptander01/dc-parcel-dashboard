@@ -39,7 +39,7 @@ export function SiteSelector({
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    new Set(Object.keys(COMPANY_CONFIG))
+    new Set()
   );
 
   const filtered = useMemo(() => {
