@@ -9,7 +9,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Loader2, AlertTriangle, Layers, BarChart3, Activity } from "lucide-react";
+import { Loader2, AlertTriangle, Layers, BarChart3, Activity, Map as MapIcon } from "lucide-react";
 import { useData } from "@/hooks/useData";
 import { usePhases } from "@/hooks/usePhases";
 import { useSpatialPhases } from "@/hooks/useSpatialPhases";
@@ -47,6 +47,7 @@ export default function Dashboard() {
   const [symbologyMode, setSymbologyMode] = useState<SymbologyMode>("type");
   const [showCompare, setShowCompare] = useState(false);
   const [showSiteIntel, setShowSiteIntel] = useState(false);
+  const [showPhaseBoundaries, setShowPhaseBoundaries] = useState(false);
 
   // Phase highlight state (shared with SiteIntelligencePanel)
   const [highlightedPhase, setHighlightedPhase] = useState<string | null>(null);
@@ -248,6 +249,7 @@ export default function Dashboard() {
         phasePolygons={phasePolygons}
         highlightedPhase={highlightedPhase}
         phaseResult={phaseResult}
+        showPhaseBoundaries={showPhaseBoundaries}
         className="!h-full !w-full absolute inset-0"
       />
 
@@ -267,38 +269,55 @@ export default function Dashboard() {
           </div>
 
           {/* Action buttons */}
-          {hasSelection && (
-            <div className="glass-panel rounded-lg pointer-events-auto flex items-center gap-1 px-2 py-1.5">
-              {selectedSiteIds.size >= 2 && (
+          <div className="flex items-center gap-2 pointer-events-auto">
+            {/* Phase Boundaries toggle — always visible */}
+            <button
+              onClick={() => setShowPhaseBoundaries(!showPhaseBoundaries)}
+              className={`glass-panel rounded-lg flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-all
+                ${
+                  showPhaseBoundaries
+                    ? "bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-500/30"
+                    : "text-foreground/70 hover:text-foreground hover:bg-white/60"
+                }`}
+              title="Toggle phase boundary polygons on the map"
+            >
+              <MapIcon className="w-3.5 h-3.5" />
+              Phase Boundaries
+            </button>
+
+            {hasSelection && (
+              <div className="glass-panel rounded-lg flex items-center gap-1 px-2 py-1.5">
+                {selectedSiteIds.size >= 2 && (
+                  <button
+                    onClick={() => setShowCompare(!showCompare)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
+                      ${
+                        showCompare
+                          ? "bg-terracotta/10 text-terracotta"
+                          : "text-foreground/70 hover:text-terracotta hover:bg-terracotta/5"
+                      }`}
+                    title="Compare selected sites"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    Compare
+                  </button>
+                )}
                 <button
-                  onClick={() => setShowCompare(!showCompare)}
+                  onClick={() => setShowSiteIntel(!showSiteIntel)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
                     ${
-                      showCompare
+                      showSiteIntel
                         ? "bg-terracotta/10 text-terracotta"
                         : "text-foreground/70 hover:text-terracotta hover:bg-terracotta/5"
                     }`}
-                  title="Compare selected sites"
+                  title="Open Site Intelligence panel"
                 >
-                  <BarChart3 className="w-3.5 h-3.5" />
-                  Compare
+                  <Activity className="w-3.5 h-3.5" />
+                  Site Intel
                 </button>
-              )}
-              <button
-                onClick={() => setShowSiteIntel(!showSiteIntel)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
-                  ${
-                    showSiteIntel
-                      ? "bg-terracotta/10 text-terracotta"
-                      : "text-foreground/70 hover:text-terracotta hover:bg-terracotta/5"
-                  }`}
-                title="Open Site Intelligence panel"
-              >
-                <Activity className="w-3.5 h-3.5" />
-                Site Intel
-              </button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

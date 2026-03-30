@@ -29,6 +29,7 @@ interface ParcelMapProps {
   phasePolygons?: PhasePolygonsGeoJSON | null;
   highlightedPhase?: string | null;
   phaseResult?: SitePhaseResult | null;
+  showPhaseBoundaries?: boolean;
   className?: string;
 }
 
@@ -136,12 +137,14 @@ export function ParcelMap({
   phasePolygons,
   highlightedPhase,
   phaseResult,
+  showPhaseBoundaries = false,
   className,
 }: ParcelMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
   const phaseOverlayRef = useRef<L.LayerGroup | null>(null);
+  const globalPhaseBoundariesRef = useRef<L.LayerGroup | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const featureLookupRef = useRef<Map<number, L.Layer>>(new Map());
   const featureStyleRef = useRef<Map<number, L.PathOptions>>(new Map());
@@ -217,8 +220,11 @@ export function ParcelMap({
     // Zoom control top-right
     L.control.zoom({ position: "topright" }).addTo(map);
 
-    // Phase overlay layer group
+    // Phase overlay layer group (per-site drill-down)
     phaseOverlayRef.current = L.layerGroup().addTo(map);
+
+    // Global phase boundaries layer
+    globalPhaseBoundariesRef.current = L.layerGroup().addTo(map);
 
     // Markers layer group
     markersLayerRef.current = L.layerGroup().addTo(map);
@@ -555,6 +561,94 @@ export function ParcelMap({
       }
     }
   }, [phasePolygons, highlightedPhase, phaseResult]);
+
+  // ── Global Phase Boundaries layer (toggle on/off) ──
+  useEffect(() => {
+    const map = mapRef.current;
+    const layerGroup = globalPhaseBoundariesRef.current;
+    if (!map || !layerGroup) return;
+
+    layerGroup.clearLayers();
+
+    if (!showPhaseBoundaries || !phasePolygons || phasePolygons.features.length === 0) return;
+
+    // Group features by site for labeling
+    const bySite = new Map<string, typeof phasePolygons.features>();
+    for (const f of phasePolygons.features) {
+      const site = f.properties.Site;
+      if (!bySite.has(site)) bySite.set(site, []);
+      bySite.get(site)!.push(f);
+    }
+
+    bySite.forEach((features) => {
+      for (const polyFeature of features) {
+        const phase = polyFeature.properties.Phase;
+        const siteName = polyFeature.properties.Site;
+        const color = getPhaseOverlayColor(phase);
+
+        const geoLayer = L.geoJSON(polyFeature as any, {
+          pane: "phaseOverlayPane",
+          style: {
+            color: color,
+            weight: 3,
+            opacity: 0.85,
+            fillColor: color,
+            fillOpacity: 0.18,
+            dashArray: "",
+          },
+        });
+
+        geoLayer.addTo(layerGroup);
+
+        // Add label at centroid with site name + phase
+        try {
+          const bounds = geoLayer.getBounds();
+          if (bounds.isValid()) {
+            const center = bounds.getCenter();
+            const phaseLabel = getPhaseOverlayLabel(phase);
+            // Build a two-line label: site name on top, phase below
+            const labelHtml = `<div style="
+              font-family: 'DM Sans', sans-serif;
+              text-align: center;
+              pointer-events: none;
+              white-space: nowrap;
+            ">
+              <div style="
+                font-size: 11px;
+                font-weight: 700;
+                color: #fff;
+                text-shadow: 0 0 5px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.8);
+                letter-spacing: 0.3px;
+              ">${siteName}</div>
+              <div style="
+                font-size: 10px;
+                font-weight: 600;
+                color: ${color};
+                text-shadow: 0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.5);
+                letter-spacing: 0.5px;
+                margin-top: 1px;
+              ">${phaseLabel}</div>
+            </div>`;
+
+            const labelIcon = L.divIcon({
+              className: "global-phase-label",
+              html: labelHtml,
+              iconSize: [0, 0],
+              iconAnchor: [0, 0],
+            });
+
+            L.marker(center, {
+              icon: labelIcon,
+              interactive: false,
+              pane: "phaseOverlayPane",
+            }).addTo(layerGroup);
+          }
+        } catch {
+          // Skip label if bounds fail
+        }
+      }
+    });
+  }, [showPhaseBoundaries, phasePolygons]);
 
   // Handle hover highlight from table
   useEffect(() => {
