@@ -5,14 +5,10 @@ const SITES_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663348511113/HQS4SQ7gKiCdBgjmaVCmNU/sites_89eb3daf.json";
 const PARCELS_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663348511113/HQS4SQ7gKiCdBgjmaVCmNU/parcels_654f57cb.geojson";
-const TIMELINE_URL =
-  "https://files.manuscdn.com/user_upload_by_module/session_file/310519663348511113/JSJCPTvHPjCzMHbL.json";
-const PHASE_ASSIGNMENTS_URL =
-  "https://files.manuscdn.com/user_upload_by_module/session_file/310519663348511113/NoRXGxzJKhxwHURH.json";
-const PHASE_POLYGONS_URL =
-  "https://files.manuscdn.com/user_upload_by_module/session_file/310519663348511113/ZpZGMhIChdudlZIw.geojson";
-const LAND_INTEL_URL =
-  "https://files.manuscdn.com/user_upload_by_module/session_file/310519663348511113/wPbtaDAFsQebXrOX.json";
+const TIMELINE_URL = "/data/timeline.json";
+const PHASE_ASSIGNMENTS_URL = "/data/phase_assignments.json";
+const PHASE_POLYGONS_URL = "/data/phase_polygons.geojson";
+const LAND_INTEL_URL = "/data/land_intel.json";
 
 /* ─── Kansas City site merge constants ─── */
 const KC_AG_ROSE_ID = "-10528275.9494 4767685.2412";       // Northern — Project Mica (Phase 2)

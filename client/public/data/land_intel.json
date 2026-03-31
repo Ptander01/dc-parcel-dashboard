@@ -1,0 +1,424 @@
+{
+  "-9467812.0235 5015679.9223000035": {
+    "transactions": [
+      {
+        "siteName": "Google_Fort Wayne_1",
+        "phase": null,
+        "company": "Google",
+        "buyerName": "Hatchworks LLC",
+        "sellerName": "Bulmahn Ronald A & J",
+        "transactionAmount": 4600000.0,
+        "landTransactionDate": "2024-01-10",
+        "acres": 577.0,
+        "siteFirstPowerDate": "2025-12-01",
+        "maxITCapacityMW": 664.0,
+        "pricePerAcre": 7972.0,
+        "leadTimeMonths": 23.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": 4600000.0,
+      "totalAcres": 577.0,
+      "maxITCapacityMW": 664.0,
+      "earliestTransactionDate": "2024-01-10",
+      "earliestFirstPowerDate": "2025-12-01",
+      "avgLeadTimeMonths": 23.0
+    }
+  },
+  "-10514673.6901 4746935.318700001": {
+    "transactions": [
+      {
+        "siteName": "Google_Kansas City_1",
+        "phase": "Google_Kansas City_Phase 2",
+        "company": "Google",
+        "buyerName": "AG Rose Solutions LLC",
+        "sellerName": "Diode Ventures LLC",
+        "transactionAmount": null,
+        "landTransactionDate": "2023-12-15",
+        "acres": null,
+        "siteFirstPowerDate": "2027-11-30",
+        "maxITCapacityMW": 501.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 47.0
+      },
+      {
+        "siteName": "Google_Kansas City_1",
+        "phase": "Google_Kansas City_Phase 1",
+        "company": "Google",
+        "buyerName": "Shalerock LLC",
+        "sellerName": null,
+        "transactionAmount": null,
+        "landTransactionDate": "2021-12-01",
+        "acres": null,
+        "siteFirstPowerDate": "2026-05-31",
+        "maxITCapacityMW": 200.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 54.0
+      },
+      {
+        "siteName": "Google_Kansas City_1",
+        "phase": "Google_Kansas City_Phase 3",
+        "company": "Google",
+        "buyerName": "Shenandoah Computing LLC",
+        "sellerName": null,
+        "transactionAmount": null,
+        "landTransactionDate": "2026-03-01",
+        "acres": null,
+        "siteFirstPowerDate": "2033-10-31",
+        "maxITCapacityMW": 501.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 92.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": null,
+      "totalAcres": null,
+      "maxITCapacityMW": 1202.0,
+      "earliestTransactionDate": "2021-12-01",
+      "earliestFirstPowerDate": "2026-05-31",
+      "avgLeadTimeMonths": 64.3
+    }
+  },
+  "-10515568.557 4747632.644900002": {
+    "transactions": [
+      {
+        "siteName": "Google_Kansas City_1",
+        "phase": "Google_Kansas City_Phase 2",
+        "company": "Google",
+        "buyerName": "AG Rose Solutions LLC",
+        "sellerName": "Diode Ventures LLC",
+        "transactionAmount": null,
+        "landTransactionDate": "2023-12-15",
+        "acres": null,
+        "siteFirstPowerDate": "2027-11-30",
+        "maxITCapacityMW": 501.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 47.0
+      },
+      {
+        "siteName": "Google_Kansas City_1",
+        "phase": "Google_Kansas City_Phase 1",
+        "company": "Google",
+        "buyerName": "Shalerock LLC",
+        "sellerName": null,
+        "transactionAmount": null,
+        "landTransactionDate": "2021-12-01",
+        "acres": null,
+        "siteFirstPowerDate": "2026-05-31",
+        "maxITCapacityMW": 200.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 54.0
+      },
+      {
+        "siteName": "Google_Kansas City_1",
+        "phase": "Google_Kansas City_Phase 3",
+        "company": "Google",
+        "buyerName": "Shenandoah Computing LLC",
+        "sellerName": null,
+        "transactionAmount": null,
+        "landTransactionDate": "2026-03-01",
+        "acres": null,
+        "siteFirstPowerDate": "2033-10-31",
+        "maxITCapacityMW": 501.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 92.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": null,
+      "totalAcres": null,
+      "maxITCapacityMW": 1202.0,
+      "earliestTransactionDate": "2021-12-01",
+      "earliestFirstPowerDate": "2026-05-31",
+      "avgLeadTimeMonths": 64.3
+    }
+  },
+  "-10528275.9494 4767685.2412": {
+    "transactions": [
+      {
+        "siteName": "Google_Kansas City_1",
+        "phase": "Google_Kansas City_Phase 2",
+        "company": "Google",
+        "buyerName": "AG Rose Solutions LLC",
+        "sellerName": "Diode Ventures LLC",
+        "transactionAmount": null,
+        "landTransactionDate": "2023-12-15",
+        "acres": null,
+        "siteFirstPowerDate": "2027-11-30",
+        "maxITCapacityMW": 501.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 47.0
+      },
+      {
+        "siteName": "Google_Kansas City_1",
+        "phase": "Google_Kansas City_Phase 1",
+        "company": "Google",
+        "buyerName": "Shalerock LLC",
+        "sellerName": null,
+        "transactionAmount": null,
+        "landTransactionDate": "2021-12-01",
+        "acres": null,
+        "siteFirstPowerDate": "2026-05-31",
+        "maxITCapacityMW": 200.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 54.0
+      },
+      {
+        "siteName": "Google_Kansas City_1",
+        "phase": "Google_Kansas City_Phase 3",
+        "company": "Google",
+        "buyerName": "Shenandoah Computing LLC",
+        "sellerName": null,
+        "transactionAmount": null,
+        "landTransactionDate": "2026-03-01",
+        "acres": null,
+        "siteFirstPowerDate": "2033-10-31",
+        "maxITCapacityMW": 501.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 92.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": null,
+      "totalAcres": null,
+      "maxITCapacityMW": 1202.0,
+      "earliestTransactionDate": "2021-12-01",
+      "earliestFirstPowerDate": "2026-05-31",
+      "avgLeadTimeMonths": 64.3
+    }
+  },
+  "-11081749.4424 3889251.5212000012": {
+    "transactions": [
+      {
+        "siteName": "Google_Lueders_1",
+        "phase": null,
+        "company": "Google",
+        "buyerName": "Google LLC",
+        "sellerName": "Homebound Group LLC",
+        "transactionAmount": null,
+        "landTransactionDate": "2024-08-20",
+        "acres": null,
+        "siteFirstPowerDate": "2027-07-30",
+        "maxITCapacityMW": 1507.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 35.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": null,
+      "totalAcres": null,
+      "maxITCapacityMW": 1507.0,
+      "earliestTransactionDate": "2024-08-20",
+      "earliestFirstPowerDate": "2027-07-30",
+      "avgLeadTimeMonths": 35.0
+    }
+  },
+  "-11085213.72 3893864.5059999973": {
+    "transactions": [
+      {
+        "siteName": "Google_Lueders_1",
+        "phase": null,
+        "company": "Google",
+        "buyerName": "Google LLC",
+        "sellerName": "Homebound Group LLC",
+        "transactionAmount": null,
+        "landTransactionDate": "2024-08-20",
+        "acres": null,
+        "siteFirstPowerDate": "2027-07-30",
+        "maxITCapacityMW": 1507.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 35.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": null,
+      "totalAcres": null,
+      "maxITCapacityMW": 1507.0,
+      "earliestTransactionDate": "2024-08-20",
+      "earliestFirstPowerDate": "2027-07-30",
+      "avgLeadTimeMonths": 35.0
+    }
+  },
+  "-9785066.4343 5262789.561300002": {
+    "transactions": [
+      {
+        "siteName": "Microsoft_Mount Pleasant_1",
+        "phase": null,
+        "company": "Microsoft",
+        "buyerName": "MICROSOFT CORPORATION",
+        "sellerName": "CREUZIGER FARMS INC",
+        "transactionAmount": 76000000.0,
+        "landTransactionDate": "2023-12-15",
+        "acres": 409.0,
+        "siteFirstPowerDate": "2026-06-01",
+        "maxITCapacityMW": 788.0,
+        "pricePerAcre": 185819.0,
+        "leadTimeMonths": 29.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": 76000000.0,
+      "totalAcres": 409.0,
+      "maxITCapacityMW": 788.0,
+      "earliestTransactionDate": "2023-12-15",
+      "earliestFirstPowerDate": "2026-06-01",
+      "avgLeadTimeMonths": 29.0
+    }
+  },
+  "-9624486.1387 5111264.9684000015": {
+    "transactions": [
+      {
+        "siteName": "Project Rainier Indiana",
+        "phase": null,
+        "company": "AWS",
+        "buyerName": "RAZOR5",
+        "sellerName": "Sebasty Kenneth",
+        "transactionAmount": 152662500.0,
+        "landTransactionDate": "2023-05-06",
+        "acres": 631.0,
+        "siteFirstPowerDate": "2025-10-29",
+        "maxITCapacityMW": 1800.0,
+        "pricePerAcre": 241937.0,
+        "leadTimeMonths": 30.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": 152662500.0,
+      "totalAcres": 631.0,
+      "maxITCapacityMW": 1800.0,
+      "earliestTransactionDate": "2023-05-06",
+      "earliestFirstPowerDate": "2025-10-29",
+      "avgLeadTimeMonths": 30.0
+    }
+  },
+  "-9626406.2557 5111263.7852": {
+    "transactions": [
+      {
+        "siteName": "Project Rainier Indiana",
+        "phase": null,
+        "company": "AWS",
+        "buyerName": "RAZOR5",
+        "sellerName": "Sebasty Kenneth",
+        "transactionAmount": 152662500.0,
+        "landTransactionDate": "2023-05-06",
+        "acres": 631.0,
+        "siteFirstPowerDate": "2025-10-29",
+        "maxITCapacityMW": 1800.0,
+        "pricePerAcre": 241937.0,
+        "leadTimeMonths": 30.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": 152662500.0,
+      "totalAcres": 631.0,
+      "maxITCapacityMW": 1800.0,
+      "earliestTransactionDate": "2023-05-06",
+      "earliestFirstPowerDate": "2025-10-29",
+      "avgLeadTimeMonths": 30.0
+    }
+  },
+  "-10023138.0952 4163402.289499998": {
+    "transactions": [
+      {
+        "siteName": "Colossus 2",
+        "phase": null,
+        "company": "xAI",
+        "buyerName": "MZX TECH LLC",
+        "sellerName": null,
+        "transactionAmount": 80000000.0,
+        "landTransactionDate": "2025-02-26",
+        "acres": 186.0,
+        "siteFirstPowerDate": "2025-08-01",
+        "maxITCapacityMW": 2000.0,
+        "pricePerAcre": 430108.0,
+        "leadTimeMonths": 5.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": 80000000.0,
+      "totalAcres": 186.0,
+      "maxITCapacityMW": 2000.0,
+      "earliestTransactionDate": "2025-02-26",
+      "earliestFirstPowerDate": "2025-08-01",
+      "avgLeadTimeMonths": 5.0
+    }
+  },
+  "-10029261.7206 3841972.158500001": {
+    "transactions": [
+      {
+        "siteName": "Project Rainier Mississippi",
+        "phase": "Canton",
+        "company": "AWS",
+        "buyerName": "AWS DATA SERVICES INC",
+        "sellerName": "MCEDA (Madison County)",
+        "transactionAmount": 800000.0,
+        "landTransactionDate": "2020-07-27",
+        "acres": 69.0,
+        "siteFirstPowerDate": "2025-10-10",
+        "maxITCapacityMW": 1040.0,
+        "pricePerAcre": 11594.0,
+        "leadTimeMonths": 62.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": 800000.0,
+      "totalAcres": 69.0,
+      "maxITCapacityMW": 1040.0,
+      "earliestTransactionDate": "2020-07-27",
+      "earliestFirstPowerDate": "2025-10-10",
+      "avgLeadTimeMonths": 62.0
+    }
+  },
+  "-10030193.9332 3841907.052500002": {
+    "transactions": [
+      {
+        "siteName": "Project Rainier Mississippi",
+        "phase": "Ridgeland",
+        "company": "AWS",
+        "buyerName": "AWS DATA SERVICES INC",
+        "sellerName": "Madison County Farm",
+        "transactionAmount": null,
+        "landTransactionDate": "2024-02-20",
+        "acres": null,
+        "siteFirstPowerDate": "2026-04-04",
+        "maxITCapacityMW": 840.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 25.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": null,
+      "totalAcres": null,
+      "maxITCapacityMW": 840.0,
+      "earliestTransactionDate": "2024-02-20",
+      "earliestFirstPowerDate": "2026-04-04",
+      "avgLeadTimeMonths": 25.0
+    }
+  },
+  "-10040018.9597 3817076.1340000033": {
+    "transactions": [
+      {
+        "siteName": "Project Rainier Mississippi",
+        "phase": "Ridgeland",
+        "company": "AWS",
+        "buyerName": "AWS DATA SERVICES INC",
+        "sellerName": "Madison County Farm",
+        "transactionAmount": null,
+        "landTransactionDate": "2024-02-20",
+        "acres": null,
+        "siteFirstPowerDate": "2026-04-04",
+        "maxITCapacityMW": 840.0,
+        "pricePerAcre": null,
+        "leadTimeMonths": 25.0
+      }
+    ],
+    "summary": {
+      "totalTransactionAmount": null,
+      "totalAcres": null,
+      "maxITCapacityMW": 840.0,
+      "earliestTransactionDate": "2024-02-20",
+      "earliestFirstPowerDate": "2026-04-04",
+      "avgLeadTimeMonths": 25.0
+    }
+  }
+}
