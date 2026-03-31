@@ -109,6 +109,7 @@ const PHASE_OVERLAY_COLORS: Record<string, string> = {
   "1_Hunt": "#10b981",
   "2_Mica": "#3b82f6",
   "Kenosha_WI": "#f97316",
+  "4_Cancelled": "#ef4444",
 };
 
 function getPhaseOverlayColor(phase: string): string {
@@ -119,6 +120,7 @@ function getPhaseOverlayLabel(phase: string): string {
   if (phase === "1_Hunt") return "Phase 1 — Hunt Midwest";
   if (phase === "2_Mica") return "Phase 2 — Project Mica";
   if (phase === "Kenosha_WI") return "Kenosha, WI";
+  if (phase === "4_Cancelled") return "Phase 4 (Cancelled)";
   if (phase === "TBD") return "TBD";
   if (phase.startsWith("PP ")) return `PP ${phase.replace("PP ", "")}`;
   if (/^\d+$/.test(phase)) return `Phase ${phase}`;

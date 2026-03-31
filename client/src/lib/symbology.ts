@@ -103,6 +103,7 @@ const PHASE_SYMBOLOGY_COLORS: Record<string, string> = {
   "1_Hunt": "#10b981",  // emerald
   "2_Mica": "#3b82f6",  // blue
   "Kenosha_WI": "#f97316", // orange
+  "4_Cancelled": "#ef4444", // red — cancelled phase
 };
 
 function getPhaseSymbologyColor(phase: string): string {
@@ -113,6 +114,7 @@ function getPhaseSymbologyLabel(phase: string): string {
   if (phase === "1_Hunt") return "Phase 1 — Hunt Midwest";
   if (phase === "2_Mica") return "Phase 2 — Project Mica";
   if (phase === "Kenosha_WI") return "Kenosha, WI Expansion";
+  if (phase === "4_Cancelled") return "Phase 4 (Cancelled)";
   if (phase === "TBD") return "TBD / Unassigned";
   if (phase.startsWith("PP ")) return `Power Plant ${phase.replace("PP ", "")}`;
   if (/^\d+$/.test(phase)) return `Phase ${phase}`;

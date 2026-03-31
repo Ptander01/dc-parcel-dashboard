@@ -40,10 +40,11 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
+  TrendingUp,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FloatingPanel } from "./FloatingPanel";
-import type { TimelineData, TimelineMilestone, ParcelFeature, Site, PhaseAssignmentsData, PhasePolygonsGeoJSON } from "@/lib/types";
+import type { TimelineData, TimelineMilestone, ParcelFeature, Site, PhaseAssignmentsData, PhasePolygonsGeoJSON, LandIntelData, LandIntelSite } from "@/lib/types";
 import type { SitePhaseResult, PhaseWithMetrics, SiteTotals } from "@/hooks/usePhases";
 import { safeNumber, formatAcres, formatCurrency } from "@/lib/format";
 import { getParentCompany, COMPANY_CONFIG } from "@/lib/companies";
@@ -60,6 +61,7 @@ interface SiteIntelligencePanelProps {
   phaseResult: SitePhaseResult | null;
   phaseAssignments: PhaseAssignmentsData | null;
   phasePolygons: PhasePolygonsGeoJSON | null;
+  landIntel: LandIntelData | null;
   hasPhasing: (siteId: string) => boolean;
   highlightedPhase: string | null;
   onHighlightPhase: (phaseId: string | null) => void;
@@ -753,11 +755,13 @@ function PhaseDetailsTab({
   highlightedPhase,
   onHighlightPhase,
   onHoverParcel,
+  landIntelSite,
 }: {
   phaseResult: SitePhaseResult;
   highlightedPhase: string | null;
   onHighlightPhase: (phaseId: string | null) => void;
   onHoverParcel: (objectId: number | null) => void;
+  landIntelSite: LandIntelSite | null;
 }) {
   const [showUnassigned, setShowUnassigned] = useState(false);
 
@@ -778,6 +782,9 @@ function PhaseDetailsTab({
 
         {/* Site-level totals banner */}
         {phaseResult.totals && <SiteTotalsBanner totals={phaseResult.totals} />}
+
+        {/* Land Intel banner — analyst-sourced transaction data */}
+        {landIntelSite && <LandIntelBanner data={landIntelSite} />}
 
         {/* Aggregate metrics */}
         <div className="grid grid-cols-3 gap-2 mt-3">
@@ -900,6 +907,109 @@ function SiteTotalsBanner({ totals }: { totals: SiteTotals }) {
           <div>
             <div className="text-[9px] uppercase tracking-wider text-purple-700/70 font-medium">Timeline</div>
             <div className="text-xs font-bold text-purple-800">{totals.energizationWindow}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Land Intel Banner ── */
+function LandIntelBanner({ data }: { data: LandIntelSite }) {
+  const s = data.summary;
+  const txCount = data.transactions.length;
+  const [expanded, setExpanded] = useState(false);
+
+  const formatDate = (d: string | null) => {
+    if (!d) return "\u2014";
+    try {
+      const dt = new Date(d);
+      return dt.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    } catch {
+      return d;
+    }
+  };
+
+  return (
+    <div className="mt-3 rounded-lg border border-sky-500/25 bg-sky-500/[0.04]">
+      <button
+        className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="w-5 h-5 rounded-md bg-sky-500/15 flex items-center justify-center shrink-0">
+          <TrendingUp className="w-3 h-3 text-sky-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] uppercase tracking-wider text-sky-700/70 font-semibold">Land Intel</div>
+          <div className="text-[9px] text-foreground/45 mt-0.5">
+            {txCount} transaction{txCount !== 1 ? "s" : ""} from analyst research
+          </div>
+        </div>
+        {expanded ? <ChevronDown className="w-3.5 h-3.5 text-foreground/40 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-foreground/40 shrink-0" />}
+      </button>
+
+      {/* Summary metrics — always visible */}
+      <div className="grid grid-cols-3 gap-1.5 px-3 pb-2.5">
+        {s.totalTransactionAmount != null && s.totalTransactionAmount > 0 && (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-white/60 text-[11px]">
+            <DollarSign className="w-3 h-3 text-sky-600 shrink-0" />
+            <div>
+              <div className="text-[8px] uppercase tracking-wider text-foreground/40">Transaction</div>
+              <div className="text-foreground/80 font-bold">{formatCurrency(s.totalTransactionAmount)}</div>
+            </div>
+          </div>
+        )}
+        {s.maxITCapacityMW != null && s.maxITCapacityMW > 0 && (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-white/60 text-[11px]">
+            <Zap className="w-3 h-3 text-amber-600 shrink-0" />
+            <div>
+              <div className="text-[8px] uppercase tracking-wider text-foreground/40">Max IT MW</div>
+              <div className="text-foreground/80 font-bold">{s.maxITCapacityMW.toLocaleString()} MW</div>
+            </div>
+          </div>
+        )}
+        {s.earliestFirstPowerDate && (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-white/60 text-[11px]">
+            <Calendar className="w-3 h-3 text-purple-600 shrink-0" />
+            <div>
+              <div className="text-[8px] uppercase tracking-wider text-foreground/40">First Power</div>
+              <div className="text-foreground/80 font-bold">{formatDate(s.earliestFirstPowerDate)}</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Expanded: per-transaction detail rows */}
+      {expanded && (
+        <div className="px-3 pb-3 border-t border-sky-500/15">
+          <div className="space-y-1.5 mt-2">
+            {data.transactions.map((tx, i) => (
+              <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-white/50 text-[10px]">
+                <div className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
+                <span className="text-foreground/70 font-medium flex-1 truncate">
+                  {tx.phase ? `${tx.phase} — ` : ""}{tx.siteName}
+                </span>
+                {tx.transactionAmount != null && tx.transactionAmount > 0 && (
+                  <span className="text-foreground/60 font-mono">{formatCurrency(tx.transactionAmount)}</span>
+                )}
+                {tx.acres != null && tx.acres > 0 && (
+                  <span className="text-foreground/50 font-mono">{formatAcres(tx.acres)}</span>
+                )}
+                {tx.maxITCapacityMW != null && tx.maxITCapacityMW > 0 && (
+                  <span className="text-foreground/50 font-mono">{tx.maxITCapacityMW} MW</span>
+                )}
+                {tx.siteFirstPowerDate && (
+                  <span className="text-foreground/50 font-mono">{formatDate(tx.siteFirstPowerDate)}</span>
+                )}
+                {tx.leadTimeMonths != null && (
+                  <span className="text-foreground/40 font-mono">{tx.leadTimeMonths} mo</span>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5 text-[9px] text-foreground/35 mt-2 italic">
+            <Info className="w-2.5 h-2.5 shrink-0" />
+            Source: Peer land lead-time analysis &amp; land banking research
           </div>
         </div>
       )}
@@ -1306,6 +1416,7 @@ export function SiteIntelligencePanel({
   phaseResult,
   phaseAssignments,
   phasePolygons,
+  landIntel,
   hasPhasing,
   highlightedPhase,
   onHighlightPhase,
@@ -1349,6 +1460,15 @@ export function SiteIntelligencePanel({
   const visibleParcels = useMemo(() => {
     return parcels.filter((p) => selectedSiteIds.has(p.properties._siteId));
   }, [parcels, selectedSiteIds]);
+
+  // Resolve land intel for the first selected site that has data
+  const landIntelForSite = useMemo((): LandIntelSite | null => {
+    if (!landIntel) return null;
+    for (const siteId of Array.from(selectedSiteIds)) {
+      if (landIntel[siteId]) return landIntel[siteId];
+    }
+    return null;
+  }, [landIntel, selectedSiteIds]);
 
   const siteName = selectedSites.length === 1
     ? selectedSites[0].currentName || selectedSites[0].label
@@ -1515,7 +1635,16 @@ export function SiteIntelligencePanel({
               highlightedPhase={highlightedPhase}
               onHighlightPhase={onHighlightPhase}
               onHoverParcel={onHoverParcel}
+              landIntelSite={landIntelForSite}
             />
+          ) : landIntelForSite ? (
+            <div className="px-4 pt-3 pb-4 overflow-y-auto">
+              <LandIntelBanner data={landIntelForSite} />
+              <div className="mt-4 flex flex-col items-center text-center">
+                <Layers className="w-6 h-6 text-foreground/20 mb-2" />
+                <p className="text-xs text-foreground/40">No phase polygon data for this site yet.</p>
+              </div>
+            </div>
           ) : (
             <NoPhaseDataPlaceholder />
           )}

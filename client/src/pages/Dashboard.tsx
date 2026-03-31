@@ -21,13 +21,13 @@ import { SymbologyPanel } from "@/components/SymbologyPanel";
 import { CompareSites } from "@/components/CompareSites";
 import { SiteIntelligencePanel } from "@/components/SiteIntelligencePanel";
 import { FloatingPanel } from "@/components/FloatingPanel";
-import type { ParcelFeature, Site } from "@/lib/types";
+import type { ParcelFeature, Site, LandIntelData } from "@/lib/types";
 import { safeNumber } from "@/lib/format";
 import { buildSymbology, setPhaseAssignmentLookup } from "@/lib/symbology";
 import type { SymbologyMode } from "@/lib/symbology";
 
 export default function Dashboard() {
-  const { sitesData, parcelsData, timelineData, phaseAssignments, phasePolygons, loading, error } = useData();
+  const { sitesData, parcelsData, timelineData, phaseAssignments, phasePolygons, landIntel, loading, error } = useData();
   const { hasPhasing: hasApnPhasing, buildPhaseResult: buildApnPhaseResult } = usePhases();
   const { hasSpatialPhasing, buildSpatialPhaseResult } = useSpatialPhases(phaseAssignments, phasePolygons);
 
@@ -379,6 +379,7 @@ export default function Dashboard() {
           phaseResult={phaseResult}
           phaseAssignments={phaseAssignments}
           phasePolygons={phasePolygons}
+          landIntel={landIntel}
           hasPhasing={hasPhasing}
           highlightedPhase={highlightedPhase}
           onHighlightPhase={setHighlightedPhase}

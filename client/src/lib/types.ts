@@ -150,6 +150,39 @@ export interface PhasePolygonsGeoJSON {
   features: PhasePolygonFeature[];
 }
 
+/* ─── Land Intel enrichment types ─── */
+export interface LandTransaction {
+  siteName: string;
+  phase: string | null;
+  company: string;
+  buyerName: string | null;
+  sellerName: string | null;
+  transactionAmount: number | null;
+  landTransactionDate: string | null;
+  acres: number | null;
+  siteFirstPowerDate: string | null;
+  maxITCapacityMW: number | null;
+  pricePerAcre: number | null;
+  leadTimeMonths: number | null;
+}
+
+export interface LandIntelSummary {
+  totalTransactionAmount: number | null;
+  totalAcres: number | null;
+  maxITCapacityMW: number | null;
+  earliestTransactionDate: string | null;
+  earliestFirstPowerDate: string | null;
+  avgLeadTimeMonths: number | null;
+}
+
+export interface LandIntelSite {
+  transactions: LandTransaction[];
+  summary: LandIntelSummary;
+}
+
+/** Map from site ID to land intel data */
+export type LandIntelData = Record<string, LandIntelSite>;
+
 /* ─── Parent company grouping ─── */
 export interface CompanyGroup {
   company: string;
