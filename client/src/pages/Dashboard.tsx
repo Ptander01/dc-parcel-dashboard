@@ -1,4 +1,4 @@
-/*
+/**
  * Cartographic Studio Design — Dashboard Page
  * Full-viewport layout: map as base canvas with floating glass panels.
  * Left: Site selector (multi-select, grouped by parent company).
@@ -6,6 +6,12 @@
  * Bottom: Data table drawer with CSV export.
  * Center-right: Compare Sites chart (when 2+ sites selected).
  * Center: Site Intelligence Panel (tabbed: Timeline, Phases, Parcels).
+ *
+ * Sprint 4 additions:
+ *  - Land Intel banners on Phases tab (analyst transaction data for 7 sites)
+ *  - Updated phase polygons (xAI Colossus Phase 1, AWS Indiana Phase 4 Cancelled)
+ *  - Merged timeline milestones (5 new Mississippi entries)
+ *  - Local data bundling (client/public/data/) for CORS-safe deployment
  */
 
 import { useState, useMemo, useCallback, useEffect } from "react";

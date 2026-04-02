@@ -48,7 +48,7 @@ export function SymbologyPanel({
           <div className="flex items-center gap-2">
             <Palette className="w-4 h-4 text-terracotta" />
             <span className="text-xs font-semibold uppercase tracking-wider text-foreground/70">
-              Symbology
+              Parcel Layer Symbology
             </span>
           </div>
           <button
